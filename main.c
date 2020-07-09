@@ -166,6 +166,7 @@ int16_t bodytemp = 0;
 uint8_t nand_flash_bad_block_num = 0;
 
 bool in_rt_mode = false;
+bool in_flash_send_mode = false;
 bool is_connected = false;
 
 #define SPI_INSTANCE 1
@@ -426,22 +427,24 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
         uint32_t err_code;
+			
+			
 
         //NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
         //NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
 
-        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
-        {
-            do
-            {
-                //                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
-                //                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
-                //                {
-                //                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
-                //                    //APP_ERROR_CHECK(err_code);
-                //                }
-            } while (err_code == NRF_ERROR_BUSY);
-        }
+//        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
+//        {
+//            do
+//            {
+//                //                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
+//                //                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
+//                //                {
+//                //                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
+//                //                    //APP_ERROR_CHECK(err_code);
+//                //                }
+//            } while (err_code == NRF_ERROR_BUSY);
+//        }
         //if (p_evt->params.rx_data.p_data[p_evt->params.rx_data.length - 1] == '\r')
         //{
         //    while (app_uart_put('\n') == NRF_ERROR_BUSY);
@@ -1242,10 +1245,20 @@ int main(void)
     // Enter main loop.
     for (;;)
     {
-				ble_rt_send();
-        nand_flash_data_write();
-				if(is_connected)
+			if(is_connected){
+				
+				if(in_rt_mode){
+					ble_rt_send();
+				}
+					
+				if(in_flash_send_mode){
 					nand_flash_data_read();
+				}
+				
+			
+			}
+				
+        nand_flash_data_write();		
         idle_state_handle();
     }
 }
