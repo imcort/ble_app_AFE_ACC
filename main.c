@@ -93,6 +93,7 @@
 #include "nrfx_saadc.h"
 
 #include "nrf_drv_clock.h"
+#include "fds.h"
 
 //#define DEBUG_MODE
 
@@ -296,10 +297,15 @@ static void m_slowACQ_timer_handler(void *p_context)
     nrfx_saadc_sample_convert(3, &saadc_val);
     bodytemp = saadc_val;
 
-    AFE_enable();
-    nrf_delay_ms(100);
-    spo2 = AFE_Reg_Read_int16(LED1VAL);
-    AFE_shutdown();
+		if(!in_rt_mode){
+			
+			AFE_enable();
+			nrf_delay_ms(100);
+			spo2 = AFE_Reg_Read_int16(LED1VAL);
+			AFE_shutdown();
+		
+		}
+    
 }
 
 /**@brief Function for initializing the timer module.
@@ -429,12 +435,19 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
         switch (p_evt->params.rx_data.p_data[0])
         {
         case 'a':
+					
+					AFE_enable();
+					in_rt_mode = true;
+				
             break;
         case 'b':
+					in_flash_send_mode = true;
             break;
         case 'c':
+					
             break;
         case 'd':
+					
             break;
         default:
             break;
@@ -738,6 +751,20 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
+static void do_connected(){
+	
+		is_connected = true;
+
+}
+
+static void do_disconnected(){
+	
+		in_rt_mode = false;
+		in_flash_send_mode = false;
+		is_connected = false;
+	
+}
+
 /**@brief Function for handling BLE events.
  *
  * @param[in]   p_ble_evt   Bluetooth stack event.
@@ -752,7 +779,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
     case BLE_GAP_EVT_CONNECTED:
 
         NRF_LOG_INFO("Connected");
-        is_connected = true;
+        do_connected();
         err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
         APP_ERROR_CHECK(err_code);
         m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
@@ -763,7 +790,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 
     case BLE_GAP_EVT_DISCONNECTED:
         NRF_LOG_INFO("Disconnected");
-        is_connected = false;
+				do_disconnected();
         // LED indication will be changed when advertising starts.
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
         break;
