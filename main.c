@@ -291,16 +291,15 @@ static void m_fastACQ_timer_handler(void *p_context)
 
 static void m_slowACQ_timer_handler(void *p_context)
 {
-	
-		nrf_saadc_value_t saadc_val;
+
+    nrf_saadc_value_t saadc_val;
     nrfx_saadc_sample_convert(3, &saadc_val);
-		bodytemp = saadc_val;
-	
-		AFE_enable();
-		nrf_delay_ms(100);
-		spo2 = AFE_Reg_Read_int16(LED1VAL);
-		AFE_shutdown();
-	
+    bodytemp = saadc_val;
+
+    AFE_enable();
+    nrf_delay_ms(100);
+    spo2 = AFE_Reg_Read_int16(LED1VAL);
+    AFE_shutdown();
 }
 
 /**@brief Function for initializing the timer module.
@@ -318,8 +317,8 @@ static void timers_init(void)
 
     err_code = app_timer_create(&slowACQ_timer, APP_TIMER_MODE_REPEATED, m_slowACQ_timer_handler);
     APP_ERROR_CHECK(err_code);
-	
-		err_code = app_timer_create(&log_timer, APP_TIMER_MODE_REPEATED, m_log_timer_handler);
+
+    err_code = app_timer_create(&log_timer, APP_TIMER_MODE_REPEATED, m_log_timer_handler);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -335,8 +334,8 @@ static void timers_start(void)
 
     err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(1000), NULL);
     APP_ERROR_CHECK(err_code);
-	
-		err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
+
+    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -427,35 +426,35 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
         //uint32_t err_code;
-			switch(p_evt->params.rx_data.p_data[0]){
-				case 'a':
-					break;
-				case 'b':
-					break;
-				case 'c':
-					break;
-				case 'd':
-					break;
-				default:
-					break;
-			}
-			
+        switch (p_evt->params.rx_data.p_data[0])
+        {
+        case 'a':
+            break;
+        case 'b':
+            break;
+        case 'c':
+            break;
+        case 'd':
+            break;
+        default:
+            break;
+        }
 
         //NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
         //NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
 
-//        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
-//        {
-//            do
-//            {
-//                //                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
-//                //                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
-//                //                {
-//                //                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
-//                //                    //APP_ERROR_CHECK(err_code);
-//                //                }
-//            } while (err_code == NRF_ERROR_BUSY);
-//        }
+        //        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
+        //        {
+        //            do
+        //            {
+        //                //                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
+        //                //                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
+        //                //                {
+        //                //                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
+        //                //                    //APP_ERROR_CHECK(err_code);
+        //                //                }
+        //            } while (err_code == NRF_ERROR_BUSY);
+        //        }
         //if (p_evt->params.rx_data.p_data[p_evt->params.rx_data.length - 1] == '\r')
         //{
         //    while (app_uart_put('\n') == NRF_ERROR_BUSY);
@@ -753,7 +752,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
     case BLE_GAP_EVT_CONNECTED:
 
         NRF_LOG_INFO("Connected");
-				is_connected = true;
+        is_connected = true;
         err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
         APP_ERROR_CHECK(err_code);
         m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
@@ -764,7 +763,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 
     case BLE_GAP_EVT_DISCONNECTED:
         NRF_LOG_INFO("Disconnected");
-				is_connected = false;
+        is_connected = false;
         // LED indication will be changed when advertising starts.
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
         break;
@@ -984,27 +983,29 @@ static void advertising_start(void)
 
 int ble_rt_send_offset = 0;
 
-static void ble_rt_send(void){
+static void ble_rt_send(void)
+{
 
-	ret_code_t ret = nrf_queue_pop(&rt_ecg_queue,&rt_send_buffer[ble_rt_send_offset*6]);
-	if(ret == NRF_SUCCESS){
-		nrf_queue_pop(&rt_accx_queue,&rt_send_buffer[ble_rt_send_offset*6+1]);
-		nrf_queue_pop(&rt_accy_queue,&rt_send_buffer[ble_rt_send_offset*6+2]);
-		nrf_queue_pop(&rt_accz_queue,&rt_send_buffer[ble_rt_send_offset*6+3]);
-		nrf_queue_pop(&rt_ppgr_queue,&rt_send_buffer[ble_rt_send_offset*6+4]);
-		nrf_queue_pop(&rt_ppgir_queue,&rt_send_buffer[ble_rt_send_offset*6+5]);
+    ret_code_t ret = nrf_queue_pop(&rt_ecg_queue, &rt_send_buffer[ble_rt_send_offset * 6]);
+    if (ret == NRF_SUCCESS)
+    {
+        nrf_queue_pop(&rt_accx_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 1]);
+        nrf_queue_pop(&rt_accy_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 2]);
+        nrf_queue_pop(&rt_accz_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 3]);
+        nrf_queue_pop(&rt_ppgr_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 4]);
+        nrf_queue_pop(&rt_ppgir_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 5]);
 
-			ble_rt_send_offset++;
-	}
-	
-	if(ble_rt_send_offset == 20){
-		rt_send_buffer[120] = spo2;
-		rt_send_buffer[121] = bodytemp;
-		uint16_t llength = 244;
-		ble_nus_data_send(&m_nus, (uint8_t*)rt_send_buffer, &llength, m_conn_handle);
-		ble_rt_send_offset = 0;
-	}
+        ble_rt_send_offset++;
+    }
 
+    if (ble_rt_send_offset == 20)
+    {
+        rt_send_buffer[120] = spo2;
+        rt_send_buffer[121] = bodytemp;
+        uint16_t llength = 244;
+        ble_nus_data_send(&m_nus, (uint8_t *)rt_send_buffer, &llength, m_conn_handle);
+        ble_rt_send_offset = 0;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////NANDFLASH
@@ -1019,203 +1020,217 @@ uint16_t flash_culumn_read = 0;
 uint16_t flash_page_read = 0;
 uint16_t flash_block_read = 0;
 
-static void m_log_timer_handler(void *p_context){
+static void m_log_timer_handler(void *p_context)
+{
 
-	NRF_LOG_INFO("Writing block %d, page %d, column %d",flash_block_offset,flash_page_offset,flash_culumn_offset);
-	NRF_LOG_INFO("send success block %d, page %d, column %d",flash_block_read,flash_page_read,flash_culumn_read);
-
-
+    NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_block_offset, flash_page_offset, flash_culumn_offset);
+    NRF_LOG_INFO("send success block %d, page %d, column %d", flash_block_read, flash_page_read, flash_culumn_read);
 }
 
+static void nand_flash_prepare(void)
+{
 
-static void nand_flash_prepare(void){
-	
-		int errid;
-	
-		nand_spi_init();
+    int errid;
+
+    nand_spi_init();
     nand_spi_flash_config_t config = {nand_spi_transfer, nand_spi_delayus};
-    
-		errid = nand_spi_flash_init(&config);
+
+    errid = nand_spi_flash_init(&config);
     NRF_LOG_INFO("nand_spi_flash_init:%s", nand_spi_flash_str_error(errid));
-		errid = nand_spi_flash_reset_unlock();
-		NRF_LOG_INFO("nand_spi_flash_reset_unlock:%s", nand_spi_flash_str_error(errid));
-		
-		errid = NSF_ERR_ERASE;
-		while(errid == NSF_ERR_ERASE){
-		
-			errid = nand_spi_flash_block_erase(flash_block_offset<<6);
-			if(errid == NSF_ERR_ERASE){
-				
-				NRF_LOG_INFO("found bad block %d", flash_block_offset);
-				nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_block_offset;
-				
-				flash_block_offset++;
-				if(flash_block_offset == 2048){
-					NRF_LOG_INFO("NO USABLE BLOCK");
-					break;
-				}
-				
-			}
-		
-		}
-			
+    errid = nand_spi_flash_reset_unlock();
+    NRF_LOG_INFO("nand_spi_flash_reset_unlock:%s", nand_spi_flash_str_error(errid));
+
+    errid = NSF_ERR_ERASE;
+    while (errid == NSF_ERR_ERASE)
+    {
+
+        errid = nand_spi_flash_block_erase(flash_block_offset << 6);
+        if (errid == NSF_ERR_ERASE)
+        {
+
+            NRF_LOG_INFO("found bad block %d", flash_block_offset);
+            nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_block_offset;
+
+            flash_block_offset++;
+            if (flash_block_offset == 2048)
+            {
+                NRF_LOG_INFO("NO USABLE BLOCK");
+                break;
+            }
+        }
+    }
 }
 
-static bool is_bad_block_existed(uint16_t bbnum){
-	
-	for(int i=0;i<nand_flash_bad_block_num;i++){
-		
-		if(nand_flash_bad_blocks[i] == bbnum){
-			
-			return true;
-		
-		}
-	
-	}
-	
-	return false;
+static bool is_bad_block_existed(uint16_t bbnum)
+{
 
+    for (int i = 0; i < nand_flash_bad_block_num; i++)
+    {
+
+        if (nand_flash_bad_blocks[i] == bbnum)
+        {
+
+            return true;
+        }
+    }
+
+    return false;
 }
 
+#define NAND_ADDR(BLOCKADDR, PAGEADDR) ((((uint32_t)BLOCKADDR) << 6) | PAGEADDR)
 
-#define NAND_ADDR(BLOCKADDR,PAGEADDR) ((((uint32_t)BLOCKADDR) << 6 ) | PAGEADDR)
+static void nand_flash_data_write(void)
+{
 
-static void nand_flash_data_write(void){
-	
-	int errid = 0;
-	
-	ret_code_t ret = nrf_queue_pop(&flash_ecg_queue,&flash_write_buffer[flash_write_data_offset*4]);
-	if(ret == NRF_SUCCESS){
-		nrf_queue_pop(&flash_accx_queue,&flash_write_buffer[flash_write_data_offset*4+1]);
-		nrf_queue_pop(&flash_accy_queue,&flash_write_buffer[flash_write_data_offset*4+2]);
-		nrf_queue_pop(&flash_accz_queue,&flash_write_buffer[flash_write_data_offset*4+3]);
+    int errid = 0;
 
-		flash_write_data_offset++;
-		
-		if(flash_write_data_offset == 30){
-	
-			errid = nand_spi_flash_page_write((flash_block_offset<<6)|flash_page_offset, flash_culumn_offset, (uint8_t*)flash_write_buffer, 240);
-			//NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_block_offset,flash_page_offset,flash_culumn_offset,240,nand_spi_flash_str_error(errid));
-			flash_culumn_offset += 240;
-			flash_write_data_offset = 0;
-	
-		}
-	
-		if((flash_culumn_offset == 4080) && (flash_write_data_offset == 17)){
-		
-			flash_write_buffer[68] = spo2;
-			flash_write_buffer[69] = bodytemp;
-			*(uint32_t*)&flash_write_buffer[70] = millis;
-			errid = nand_spi_flash_page_write((flash_block_offset<<6)|flash_page_offset, flash_culumn_offset, (uint8_t*)flash_write_buffer, 144);
-			//NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_block_offset,flash_page_offset,flash_culumn_offset,144,nand_spi_flash_str_error(errid));
-			flash_culumn_offset = 0;
-			flash_write_data_offset = 0;
-			flash_page_offset++;
-			if(flash_page_offset == 64){
-				
-				flash_page_offset = 0;
-				flash_block_offset++;
-				if(flash_block_offset == 2048){
-					flash_write_cycle++;
-					flash_block_offset = 0;
-				
-				}
-				
-				while(is_bad_block_existed(flash_block_offset)){
-					NRF_LOG_INFO("bad block existed %d", flash_block_offset);
-					flash_block_offset++;
-					if(flash_block_offset == 2048){
-						flash_write_cycle++;
-						flash_block_offset = 0;
-					}
-				}
-					
-				errid = NSF_ERR_ERASE;
-				while(errid == NSF_ERR_ERASE){
-					NRF_LOG_INFO("erasing block %d", flash_block_offset);
-					errid = nand_spi_flash_block_erase(flash_block_offset<<6);
-					if(errid == NSF_ERR_ERASE){
-				
-						NRF_LOG_INFO("found bad block %d", flash_block_offset);
-						nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_block_offset;
-						flash_block_offset++;
-						if(flash_block_offset == 2048){
-							flash_write_cycle++;
-							flash_block_offset = 0;
-						}	
-					}
-				}
-				
-				if(flash_block_read == flash_block_offset){
-					
-					NRF_LOG_INFO("data overwritten block %d", flash_block_offset);
-					flash_block_read = flash_block_offset + 1;
-					flash_page_read = 0;
-				
-				}
-				
-			}
-		}
-	}
+    ret_code_t ret = nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 4]);
+    if (ret == NRF_SUCCESS)
+    {
+        nrf_queue_pop(&flash_accx_queue, &flash_write_buffer[flash_write_data_offset * 4 + 1]);
+        nrf_queue_pop(&flash_accy_queue, &flash_write_buffer[flash_write_data_offset * 4 + 2]);
+        nrf_queue_pop(&flash_accz_queue, &flash_write_buffer[flash_write_data_offset * 4 + 3]);
+
+        flash_write_data_offset++;
+
+        if (flash_write_data_offset == 30)
+        {
+
+            errid = nand_spi_flash_page_write((flash_block_offset << 6) | flash_page_offset, flash_culumn_offset, (uint8_t *)flash_write_buffer, 240);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_block_offset,flash_page_offset,flash_culumn_offset,240,nand_spi_flash_str_error(errid));
+            flash_culumn_offset += 240;
+            flash_write_data_offset = 0;
+        }
+
+        if ((flash_culumn_offset == 4080) && (flash_write_data_offset == 17))
+        {
+
+            flash_write_buffer[68] = spo2;
+            flash_write_buffer[69] = bodytemp;
+            *(uint32_t *)&flash_write_buffer[70] = millis;
+            errid = nand_spi_flash_page_write((flash_block_offset << 6) | flash_page_offset, flash_culumn_offset, (uint8_t *)flash_write_buffer, 144);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_block_offset,flash_page_offset,flash_culumn_offset,144,nand_spi_flash_str_error(errid));
+            flash_culumn_offset = 0;
+            flash_write_data_offset = 0;
+            flash_page_offset++;
+            if (flash_page_offset == 64)
+            {
+
+                flash_page_offset = 0;
+                flash_block_offset++;
+                if (flash_block_offset == 2048)
+                {
+                    flash_write_cycle++;
+                    flash_block_offset = 0;
+                }
+
+                while (is_bad_block_existed(flash_block_offset))
+                {
+                    NRF_LOG_INFO("bad block existed %d", flash_block_offset);
+                    flash_block_offset++;
+                    if (flash_block_offset == 2048)
+                    {
+                        flash_write_cycle++;
+                        flash_block_offset = 0;
+                    }
+                }
+
+                errid = NSF_ERR_ERASE;
+                while (errid == NSF_ERR_ERASE)
+                {
+                    NRF_LOG_INFO("erasing block %d", flash_block_offset);
+                    errid = nand_spi_flash_block_erase(flash_block_offset << 6);
+                    if (errid == NSF_ERR_ERASE)
+                    {
+
+                        NRF_LOG_INFO("found bad block %d", flash_block_offset);
+                        nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_block_offset;
+                        flash_block_offset++;
+                        if (flash_block_offset == 2048)
+                        {
+                            flash_write_cycle++;
+                            flash_block_offset = 0;
+                        }
+                    }
+                }
+
+                if (flash_block_read == flash_block_offset)
+                {
+
+                    NRF_LOG_INFO("data overwritten block %d", flash_block_offset);
+                    flash_block_read = flash_block_offset + 1;
+                    flash_page_read = 0;
+                }
+            }
+        }
+    }
 }
 
 bool is_read = false;
 static uint8_t readbuf[194];
 
-static void nand_flash_data_read(){
-	
-	int errid = 0;
-	ret_code_t ret;
-	if((NAND_ADDR(flash_block_read,flash_page_read) < NAND_ADDR(flash_block_offset,flash_page_offset)) | flash_write_cycle){
-		
-		if(!is_read){
-			errid = nand_spi_flash_page_read((flash_block_read<<6)|flash_page_read,flash_culumn_read,readbuf+2,192);
-			is_read = true;
-		}
-		
-		readbuf[1] = flash_culumn_read / 192;
-		
-		uint16_t llength = 194;
-		ret = ble_nus_data_send(&m_nus, readbuf, &llength, m_conn_handle);
-		if(ret == NRF_SUCCESS){
-			//NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s",flash_block_read,flash_page_read,flash_culumn_read,192,nand_spi_flash_str_error(errid));
-			is_read = false;
-			flash_culumn_read += 192;
-			if(flash_culumn_read == 4224){
-			
-				flash_culumn_read = 0;
-				flash_page_read++;
-				if(flash_page_read == 64){
-				
-					flash_page_read = 0;
-					flash_block_read++;
-					
-					if(flash_block_read == 2048){
-						flash_write_cycle = 0;
-						flash_block_read = 0;
-					
-					}
-					
-					while(is_bad_block_existed(flash_block_read)){
-						NRF_LOG_INFO("read bad block jumped %d", flash_block_read);
-						flash_block_read++;
-						if(flash_block_read == 2048){
-							flash_write_cycle = 0;
-							flash_block_read = 0;
-						}
-					}
-				}
-			}
-		}
-	}
+static void nand_flash_data_read()
+{
+
+    int errid = 0;
+    ret_code_t ret;
+    if ((NAND_ADDR(flash_block_read, flash_page_read) < NAND_ADDR(flash_block_offset, flash_page_offset)) | flash_write_cycle)
+    {
+
+        if (!is_read)
+        {
+            errid = nand_spi_flash_page_read((flash_block_read << 6) | flash_page_read, flash_culumn_read, readbuf + 2, 192);
+            is_read = true;
+        }
+
+        readbuf[1] = flash_culumn_read / 192;
+
+        uint16_t llength = 194;
+        ret = ble_nus_data_send(&m_nus, readbuf, &llength, m_conn_handle);
+        if (ret == NRF_SUCCESS)
+        {
+            //NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s",flash_block_read,flash_page_read,flash_culumn_read,192,nand_spi_flash_str_error(errid));
+            is_read = false;
+            flash_culumn_read += 192;
+            if (flash_culumn_read == 4224)
+            {
+
+                flash_culumn_read = 0;
+                flash_page_read++;
+                if (flash_page_read == 64)
+                {
+
+                    flash_page_read = 0;
+                    flash_block_read++;
+
+                    if (flash_block_read == 2048)
+                    {
+                        flash_write_cycle = 0;
+                        flash_block_read = 0;
+                    }
+
+                    while (is_bad_block_existed(flash_block_read))
+                    {
+                        NRF_LOG_INFO("read bad block jumped %d", flash_block_read);
+                        flash_block_read++;
+                        if (flash_block_read == 2048)
+                        {
+                            flash_write_cycle = 0;
+                            flash_block_read = 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 static void lfclk_config(void)
 {
-  ret_code_t err_code = nrf_drv_clock_init();
-  APP_ERROR_CHECK(err_code);
+    ret_code_t err_code = nrf_drv_clock_init();
+    APP_ERROR_CHECK(err_code);
 
-  nrf_drv_clock_lfclk_request(NULL);
+    nrf_drv_clock_lfclk_request(NULL);
 }
 
 /**@brief Application main function.
@@ -1226,7 +1241,7 @@ int main(void)
     // Initialize.
 
     log_init();
-		lfclk_config();
+    lfclk_config();
     timers_init();
     buttons_leds_init(&erase_bonds);
     power_management_init();
@@ -1245,8 +1260,8 @@ int main(void)
     AFEinit();
     MC36XXstart();
     saadc_init();
-		nand_flash_prepare();
-    
+    nand_flash_prepare();
+
     timers_start();
     //AFE_shutdown();
     //MC36XXSetMode(MC36XX_MODE_SLEEP);
@@ -1256,20 +1271,21 @@ int main(void)
     // Enter main loop.
     for (;;)
     {
-			if(is_connected){
-				
-				if(in_rt_mode){
-					ble_rt_send();
-				}
-					
-				if(in_flash_send_mode){
-					nand_flash_data_read();
-				}
-				
-			
-			}
-				
-        nand_flash_data_write();		
+        if (is_connected)
+        {
+
+            if (in_rt_mode)
+            {
+                ble_rt_send();
+            }
+
+            if (in_flash_send_mode)
+            {
+                nand_flash_data_read();
+            }
+        }
+
+        nand_flash_data_write();
         idle_state_handle();
     }
 }
