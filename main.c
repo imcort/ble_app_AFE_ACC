@@ -426,8 +426,19 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
-        uint32_t err_code;
-			
+        //uint32_t err_code;
+			switch(p_evt->params.rx_data.p_data[0]){
+				case 'a':
+					break;
+				case 'b':
+					break;
+				case 'c':
+					break;
+				case 'd':
+					break;
+				default:
+					break;
+			}
 			
 
         //NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
