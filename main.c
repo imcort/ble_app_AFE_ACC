@@ -1099,7 +1099,7 @@ static void fds_prepare(void){
 
 typedef struct {
 	
-	uint16_t culumn;
+	uint16_t column;
 	uint16_t page;
 	uint16_t block;
 
@@ -1107,7 +1107,15 @@ typedef struct {
 
 static nand_flash_addr_t flash_offset = {
 	
-	.culumn = 0,
+	.column = 0,
+	.page = 0,
+	.block = 0
+
+};
+
+static nand_flash_addr_t flash_read = {
+	
+	.column = 0,
 	.page = 0,
 	.block = 0
 
@@ -1119,15 +1127,15 @@ static nand_flash_addr_t flash_offset = {
 uint16_t flash_write_cycle = 0;
 uint16_t flash_write_data_offset = 0;
 
-uint16_t flash_culumn_read = 0;
-uint16_t flash_page_read = 0;
-uint16_t flash_block_read = 0;
+//uint16_t flash_culumn_read = 0;
+//uint16_t flash_page_read = 0;
+//uint16_t flash_block_read = 0;
 
 static void m_log_timer_handler(void *p_context)
 {
 
-    NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_page_offset, flash_culumn_offset);
-    NRF_LOG_INFO("send success block %d, page %d, column %d", flash_block_read, flash_page_read, flash_culumn_read);
+    NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
+    NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
 }
 
 static void nand_flash_prepare(void)
@@ -1199,27 +1207,27 @@ static void nand_flash_data_write(void)
         if (flash_write_data_offset == 30)
         {
 
-            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_page_offset, flash_culumn_offset, (uint8_t *)flash_write_buffer, 240);
-            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_page_offset,flash_culumn_offset,240,nand_spi_flash_str_error(errid));
-            flash_culumn_offset += 240;
+            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 240);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_offset.page,flash_offset.column,240,nand_spi_flash_str_error(errid));
+            flash_offset.column += 240;
             flash_write_data_offset = 0;
         }
 
-        if ((flash_culumn_offset == 4080) && (flash_write_data_offset == 17))
+        if ((flash_offset.column == 4080) && (flash_write_data_offset == 17))
         {
 
             flash_write_buffer[68] = spo2;
             flash_write_buffer[69] = bodytemp;
             *(uint32_t *)&flash_write_buffer[70] = millis;
-            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_page_offset, flash_culumn_offset, (uint8_t *)flash_write_buffer, 144);
-            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_page_offset,flash_culumn_offset,144,nand_spi_flash_str_error(errid));
-            flash_culumn_offset = 0;
+            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_offset.page,flash_offset.column,144,nand_spi_flash_str_error(errid));
+            flash_offset.column = 0;
             flash_write_data_offset = 0;
-            flash_page_offset++;
-            if (flash_page_offset == 64)
+            flash_offset.page++;
+            if (flash_offset.page == 64)
             {
 
-                flash_page_offset = 0;
+                flash_offset.page = 0;
                 flash_offset.block++;
                 if (flash_offset.block == 2048)
                 {
@@ -1257,12 +1265,12 @@ static void nand_flash_data_write(void)
                     }
                 }
 
-                if (flash_block_read == flash_offset.block)
+                if (flash_read.block == flash_offset.block)
                 {
 
                     NRF_LOG_INFO("data overwritten block %d", flash_offset.block);
-                    flash_block_read = flash_offset.block + 1;
-                    flash_page_read = 0;
+                    flash_read.block = flash_offset.block + 1;
+                    flash_read.page = 0;
                 }
             }
         }
@@ -1277,49 +1285,49 @@ static void nand_flash_data_read()
 
     int errid = 0;
     ret_code_t ret;
-    if ((NAND_ADDR(flash_block_read, flash_page_read) < NAND_ADDR(flash_offset.block, flash_page_offset)) | flash_write_cycle)
+    if ((NAND_ADDR(flash_read.block, flash_read.page) < NAND_ADDR(flash_offset.block, flash_offset.page)) | flash_write_cycle)
     {
 
         if (!is_read)
         {
-            errid = nand_spi_flash_page_read((flash_block_read << 6) | flash_page_read, flash_culumn_read, readbuf + 2, 192);
+            errid = nand_spi_flash_page_read((flash_read.block << 6) | flash_read.page, flash_read.column, readbuf + 2, 192);
             is_read = true;
         }
 
-        readbuf[1] = flash_culumn_read / 192;
+        readbuf[1] = flash_read.column / 192;
 
         uint16_t llength = 194;
         ret = ble_nus_data_send(&m_nus, readbuf, &llength, m_conn_handle);
         if (ret == NRF_SUCCESS)
         {
-            //NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s",flash_block_read,flash_page_read,flash_culumn_read,192,nand_spi_flash_str_error(errid));
+            //NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s",flash_read.block,flash_read.page,flash_read.column,192,nand_spi_flash_str_error(errid));
             is_read = false;
-            flash_culumn_read += 192;
-            if (flash_culumn_read == 4224)
+            flash_read.column += 192;
+            if (flash_read.column == 4224)
             {
 
-                flash_culumn_read = 0;
-                flash_page_read++;
-                if (flash_page_read == 64)
+                flash_read.column = 0;
+                flash_read.page++;
+                if (flash_read.page == 64)
                 {
 
-                    flash_page_read = 0;
-                    flash_block_read++;
+                    flash_read.page = 0;
+                    flash_read.block++;
 
-                    if (flash_block_read == 2048)
+                    if (flash_read.block == 2048)
                     {
                         flash_write_cycle = 0;
-                        flash_block_read = 0;
+                        flash_read.block = 0;
                     }
 
-                    while (is_bad_block_existed(flash_block_read))
+                    while (is_bad_block_existed(flash_read.block))
                     {
-                        NRF_LOG_INFO("read bad block jumped %d", flash_block_read);
-                        flash_block_read++;
-                        if (flash_block_read == 2048)
+                        NRF_LOG_INFO("read bad block jumped %d", flash_read.block);
+                        flash_read.block++;
+                        if (flash_read.block == 2048)
                         {
                             flash_write_cycle = 0;
-                            flash_block_read = 0;
+                            flash_read.block = 0;
                         }
                     }
                 }
