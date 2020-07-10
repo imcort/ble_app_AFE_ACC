@@ -1034,69 +1034,22 @@ static void ble_rt_send(void)
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////FDS
-static bool volatile m_fds_initialized;
 
-static void fds_evt_handler(fds_evt_t const *p_evt)
-{
-    NRF_LOG_INFO("Event: %d received (%d)", p_evt->id, p_evt->result);
-
-    switch (p_evt->id)
-    {
-    case FDS_EVT_INIT:
-        if (p_evt->result == FDS_SUCCESS)
-        {
-            m_fds_initialized = true;
-        }
-        break;
-
-    case FDS_EVT_WRITE:
-    {
-        if (p_evt->result == FDS_SUCCESS)
-        {
-            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
-            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
-            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
-        }
-    }
-    break;
-
-    case FDS_EVT_DEL_RECORD:
-    {
-        if (p_evt->result == FDS_SUCCESS)
-        {
-            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->del.record_id);
-            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->del.file_id);
-            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->del.record_key);
-        }
-        //m_delete_all.pending = false;
-    }
-    break;
-
-    default:
-        break;
-    }
-}
-
-//static
-
-static void fds_prepare(void)
-{
-
-    ret_code_t err_code;
-
-    (void)fds_register(fds_evt_handler);
-
-    err_code = fds_init();
-    APP_ERROR_CHECK(err_code);
-
-    while (!m_fds_initialized)
-    {
-        idle_state_handle();
-    }
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////NANDFLASH
+#define FLASH_STATUS_FILE_ID (0xF010)
+#define FLASH_OFFSET_KEY     (0x7011)
+#define FLASH_READ_KEY       (0x7012)
+#define FLASH_BADBLOCK_KEY   (0x7013)
+
+static bool volatile m_fds_initialized;
+static bool volatile m_fds_writed;
+static bool volatile m_fds_updated;
+
+fds_record_desc_t desc = {0};
+fds_find_token_t tok = {0};
+
+////////////////////////////////////////////FDS
 
 typedef struct
 {
@@ -1104,6 +1057,7 @@ typedef struct
     uint16_t column;
     uint16_t page;
     uint16_t block;
+		uint16_t __not_used_;
 
 } nand_flash_addr_t;
 
@@ -1126,6 +1080,30 @@ static nand_flash_addr_t flash_read = {
 bool flash_write_full = false;
 uint16_t flash_write_data_offset = 0;
 
+static fds_record_t const m_flash_offset_record = 
+{
+	.file_id = FLASH_STATUS_FILE_ID,
+	.key = FLASH_OFFSET_KEY,
+	.data.p_data = &flash_offset,
+	.data.length_words = 2
+};
+
+static fds_record_t const m_flash_read_record = 
+{
+	.file_id = FLASH_STATUS_FILE_ID,
+	.key = FLASH_READ_KEY,
+	.data.p_data = &flash_read,
+	.data.length_words = 2
+};
+
+static fds_record_t const m_flash_bad_block_record = 
+{
+	.file_id = FLASH_STATUS_FILE_ID,
+	.key = FLASH_BADBLOCK_KEY,
+	.data.p_data = &nand_flash_bad_blocks,
+	.data.length_words = 20
+};
+
 static void m_log_timer_handler(void *p_context)
 {
 
@@ -1138,6 +1116,7 @@ static void nand_flash_prepare(void)
 {
 
     int errid;
+		ret_code_t ret;
 
     nand_spi_init();
     nand_spi_flash_config_t config = {nand_spi_transfer, nand_spi_delayus};
@@ -1146,6 +1125,27 @@ static void nand_flash_prepare(void)
     NRF_LOG_INFO("nand_spi_flash_init:%s", nand_spi_flash_str_error(errid));
     errid = nand_spi_flash_reset_unlock();
     NRF_LOG_INFO("nand_spi_flash_reset_unlock:%s", nand_spi_flash_str_error(errid));
+		
+		memset(&tok, 0x00, sizeof(fds_find_token_t));
+		ret = fds_record_find(FLASH_STATUS_FILE_ID, FLASH_OFFSET_KEY, &desc, &tok);
+		
+		if(ret == NRF_SUCCESS)
+		{
+		
+			NRF_LOG_INFO("FDS found flash offset");
+			m_fds_updated = false;
+			ret = fds_record_update(&desc, &m_flash_offset_record);
+			APP_ERROR_CHECK(ret);
+			while(!m_fds_updated) __WFE();
+			NRF_LOG_INFO("FDS flash offset updated");
+			
+		} else {
+			
+			NRF_LOG_INFO("FDS flash offset not found.");
+		
+		}
+		
+		
 }
 
 static bool is_bad_block_existed(uint16_t bbnum)
@@ -1299,6 +1299,68 @@ static void nand_flash_data_read()
                 }
             }
         }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////FDS
+
+static void fds_evt_handler(fds_evt_t const *p_evt)
+{
+    NRF_LOG_INFO("Event: %d received (%d)", p_evt->id, p_evt->result);
+
+    switch (p_evt->id)
+    {
+    case FDS_EVT_INIT:
+        if (p_evt->result == FDS_SUCCESS)
+        {
+            m_fds_initialized = true;
+        }
+        break;
+
+    case FDS_EVT_WRITE:
+    {
+        if (p_evt->result == FDS_SUCCESS)
+        {
+						m_fds_writed = true;
+//            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
+//            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
+//            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
+        }
+    }
+    break;
+		
+		case FDS_EVT_UPDATE:
+    {
+        if (p_evt->result == FDS_SUCCESS)
+        {
+						m_fds_updated = true;
+//            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
+//            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
+//            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
+        }
+    }
+    break;
+
+    default:
+        break;
+    }
+}
+
+//static
+
+static void fds_prepare(void)
+{
+
+    ret_code_t err_code;
+
+    (void)fds_register(fds_evt_handler);
+
+    err_code = fds_init();
+    APP_ERROR_CHECK(err_code);
+
+    while (!m_fds_initialized)
+    {
+        idle_state_handle();
     }
 }
 
