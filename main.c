@@ -1109,33 +1109,35 @@ static fds_record_t const m_flash_bad_block_record =
 	.data.length_words = 20
 };
 
+static void fds_gc_process(){
+	
+	static fds_stat_t stat = {0};
+	
+	ret_code_t ret = fds_stat(&stat);
+	APP_ERROR_CHECK(ret);
+	
+	NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
+	
+//	if(stat.freeable_words > 500){
+//		
+//		m_fds_gc = false;
+//		ret = fds_gc();
+//		APP_ERROR_CHECK(ret);
+//		
+//		while(!m_fds_gc) __WFE();
+//		
+//		NRF_LOG_INFO("FDS gc cleared");
+//	
+//	}
+
+}
+
 static void m_log_timer_handler(void *p_context)
 {
 		fds_gc_process();
     NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
     NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
 	
-}
-
-static void fds_gc_process(){
-	
-	fds_stat_t stat = {0};
-	
-	ret_code_t ret = fds_stat(&stat);
-	APP_ERROR_CHECK(ret);
-	
-	if(stat.pages_available < 5){
-		
-		m_fds_gc = false;
-		ret = fds_gc();
-		APP_ERROR_CHECK(ret);
-		
-		while(!m_fds_gc) __WFE();
-		
-		NRF_LOG_INFO("FDS gc cleared");
-	
-	}
-
 }
 
 static void nand_flash_prepare(void)
@@ -1291,6 +1293,16 @@ static void nand_flash_data_write(void)
 
                         NRF_LOG_INFO("found bad block %d", flash_offset.block);
                         nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_offset.block; //store the bad block
+											
+												//Writing to FDS
+												//NRF_LOG_INFO("FDS updating flash badblocks");
+												m_fds_updated = false;
+												ret = fds_record_update(&flash_badblock_desc, &m_flash_bad_block_record);
+												//NRF_LOG_INFO("FDS flash error:%d", ret);
+												//FDS_ERR_INVALID_ARG
+												APP_ERROR_CHECK(ret);
+												while(!m_fds_updated) __WFE();
+												//NRF_LOG_INFO("FDS updated");
 
                         flash_offset.block++;
 
@@ -1321,17 +1333,22 @@ static void nand_flash_data_write(void)
             flash_offset.page++;
 						
 						//Writing to FDS
-						NRF_LOG_INFO("FDS updating flash offset");
-						m_fds_writed = false;
+						//NRF_LOG_INFO("FDS updating flash offset");
+						m_fds_updated = false;
 						ret = fds_record_update(&flash_offset_desc, &m_flash_offset_record);
 						//NRF_LOG_INFO("FDS flash error:%d", ret);
 						//FDS_ERR_INVALID_ARG
 						APP_ERROR_CHECK(ret);
 						while(!m_fds_updated) __WFE();
-						NRF_LOG_INFO("FDS updated");
+						//NRF_LOG_INFO("FDS updated");
 						
             if (flash_offset.page == 64)
             {
+							  //gc every pages full
+								m_fds_gc = false;
+								ret = fds_gc();
+								APP_ERROR_CHECK(ret);
+								while(!m_fds_gc) __WFE();
 
                 flash_offset.page = 0;
                 flash_offset.block++;
@@ -1536,6 +1553,8 @@ int main(void)
 
             nand_flash_data_write();
         }
+				
+				//fds_gc_process();
 
         idle_state_handle();
     }
