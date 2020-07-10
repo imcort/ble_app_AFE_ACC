@@ -297,15 +297,14 @@ static void m_slowACQ_timer_handler(void *p_context)
     nrfx_saadc_sample_convert(3, &saadc_val);
     bodytemp = saadc_val;
 
-		if(!in_rt_mode){
-			
-			AFE_enable();
-			nrf_delay_ms(100);
-			spo2 = AFE_Reg_Read_int16(LED1VAL);
-			AFE_shutdown();
-		
-		}
-    
+    if (!in_rt_mode)
+    {
+
+        AFE_enable();
+        nrf_delay_ms(100);
+        spo2 = AFE_Reg_Read_int16(LED1VAL);
+        AFE_shutdown();
+    }
 }
 
 /**@brief Function for initializing the timer module.
@@ -435,19 +434,19 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
         switch (p_evt->params.rx_data.p_data[0])
         {
         case 'a':
-					
-					AFE_enable();
-					in_rt_mode = true;
-				
+
+            AFE_enable();
+            in_rt_mode = true;
+
             break;
         case 'b':
-					in_flash_send_mode = true;
+            in_flash_send_mode = true;
             break;
         case 'c':
-					
+
             break;
         case 'd':
-					
+
             break;
         default:
             break;
@@ -751,18 +750,18 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     }
 }
 
-static void do_connected(){
-	
-		is_connected = true;
+static void do_connected()
+{
 
+    is_connected = true;
 }
 
-static void do_disconnected(){
-	
-		in_rt_mode = false;
-		in_flash_send_mode = false;
-		is_connected = false;
-	
+static void do_disconnected()
+{
+
+    in_rt_mode = false;
+    in_flash_send_mode = false;
+    is_connected = false;
 }
 
 /**@brief Function for handling BLE events.
@@ -790,7 +789,7 @@ static void ble_evt_handler(ble_evt_t const *p_ble_evt, void *p_context)
 
     case BLE_GAP_EVT_DISCONNECTED:
         NRF_LOG_INFO("Disconnected");
-				do_disconnected();
+        do_disconnected();
         // LED indication will be changed when advertising starts.
         m_conn_handle = BLE_CONN_HANDLE_INVALID;
         break;
@@ -1038,86 +1037,89 @@ static void ble_rt_send(void)
 //////////////////////////////////////////////////////////////////////////////FDS
 static bool volatile m_fds_initialized;
 
-static void fds_evt_handler(fds_evt_t const * p_evt)
+static void fds_evt_handler(fds_evt_t const *p_evt)
 {
     NRF_LOG_INFO("Event: %d received (%d)", p_evt->id, p_evt->result);
 
     switch (p_evt->id)
     {
-        case FDS_EVT_INIT:
-            if (p_evt->result == FDS_SUCCESS)
-            {
-                m_fds_initialized = true;
-            }
-            break;
-
-        case FDS_EVT_WRITE:
+    case FDS_EVT_INIT:
+        if (p_evt->result == FDS_SUCCESS)
         {
-            if (p_evt->result == FDS_SUCCESS)
-            {
-                NRF_LOG_INFO("Record ID:\t0x%04x",  p_evt->write.record_id);
-                NRF_LOG_INFO("File ID:\t0x%04x",    p_evt->write.file_id);
-                NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
-            }
-        } break;
+            m_fds_initialized = true;
+        }
+        break;
 
-        case FDS_EVT_DEL_RECORD:
+    case FDS_EVT_WRITE:
+    {
+        if (p_evt->result == FDS_SUCCESS)
         {
-            if (p_evt->result == FDS_SUCCESS)
-            {
-                NRF_LOG_INFO("Record ID:\t0x%04x",  p_evt->del.record_id);
-                NRF_LOG_INFO("File ID:\t0x%04x",    p_evt->del.file_id);
-                NRF_LOG_INFO("Record key:\t0x%04x", p_evt->del.record_key);
-            }
-            //m_delete_all.pending = false;
-        } break;
+            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
+            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
+            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
+        }
+    }
+    break;
 
-        default:
-            break;
+    case FDS_EVT_DEL_RECORD:
+    {
+        if (p_evt->result == FDS_SUCCESS)
+        {
+            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->del.record_id);
+            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->del.file_id);
+            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->del.record_key);
+        }
+        //m_delete_all.pending = false;
+    }
+    break;
+
+    default:
+        break;
     }
 }
 
 //static
 
-static void fds_prepare(void){
+static void fds_prepare(void)
+{
 
-	ret_code_t err_code;
-	
-	(void) fds_register(fds_evt_handler);
-	
-	err_code = fds_init();
-	APP_ERROR_CHECK(err_code);
-	
-	while (!m_fds_initialized)
-	{
-			idle_state_handle();
-	}
+    ret_code_t err_code;
 
+    (void)fds_register(fds_evt_handler);
+
+    err_code = fds_init();
+    APP_ERROR_CHECK(err_code);
+
+    while (!m_fds_initialized)
+    {
+        idle_state_handle();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////NANDFLASH
 
-typedef struct {
-	
-	uint16_t column;
-	uint16_t page;
-	uint16_t block;
+typedef struct
+{
+
+    uint16_t column;
+    uint16_t page;
+    uint16_t block;
 
 } nand_flash_addr_t;
 
 static nand_flash_addr_t flash_offset = {
-	
-	.column = 0,
-	.page = 0,
-	.block = 0
+
+    .column = 0,
+    .page = 0,
+    .block = 0
 
 };
 
 static nand_flash_addr_t flash_read = {
-	
-	.column = 0,
-	.page = 0,
-	.block = 0
+
+    .column = 0,
+    .page = 0,
+    .block = 0
 
 };
 
@@ -1127,8 +1129,9 @@ uint16_t flash_write_data_offset = 0;
 static void m_log_timer_handler(void *p_context)
 {
 
-    //NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
-    //NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
+    NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
+    NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
+	
 }
 
 static void nand_flash_prepare(void)
@@ -1143,7 +1146,6 @@ static void nand_flash_prepare(void)
     NRF_LOG_INFO("nand_spi_flash_init:%s", nand_spi_flash_str_error(errid));
     errid = nand_spi_flash_reset_unlock();
     NRF_LOG_INFO("nand_spi_flash_reset_unlock:%s", nand_spi_flash_str_error(errid));
-		
 }
 
 static bool is_bad_block_existed(uint16_t bbnum)
@@ -1164,78 +1166,80 @@ static bool is_bad_block_existed(uint16_t bbnum)
 
 #define NAND_ADDR(BLOCKADDR, PAGEADDR) ((((uint32_t)BLOCKADDR) << 6) | PAGEADDR)
 
-static void nand_flash_data_write(void){
-	
-	int errid = 0;
-	
-	ret_code_t ret = nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 4]);
-  if (ret == NRF_SUCCESS)//When new data is acquired
-	{ 
-		
-			nrf_queue_pop(&flash_accx_queue, &flash_write_buffer[flash_write_data_offset * 4 + 1]);
-			nrf_queue_pop(&flash_accy_queue, &flash_write_buffer[flash_write_data_offset * 4 + 2]);
-			nrf_queue_pop(&flash_accz_queue, &flash_write_buffer[flash_write_data_offset * 4 + 3]);
+static void nand_flash_data_write(void)
+{
 
-			flash_write_data_offset++;
+    int errid = 0;
 
-			if (flash_write_data_offset == 30)
-			{
-					if(flash_offset.page == 0 && flash_offset.column == 0) //needs to be write but block not erased
-						{
-		
-						errid = NSF_ERR_ERASE;
-						while (errid == NSF_ERR_ERASE){
-							
-							NRF_LOG_INFO("erasing block %d", flash_offset.block);
-							NRF_LOG_FLUSH();
-							errid = nand_spi_flash_block_erase(flash_offset.block << 6);
-							if (errid == NSF_ERR_ERASE){
-								
-								NRF_LOG_INFO("found bad block %d", flash_offset.block);
-								nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_offset.block;  //store the bad block
-								
-								flash_offset.block++;
-								
-								if (flash_offset.block == 2048){
-										flash_write_full = true;
-								}
-							}
-						}
-					} 
-					
-					errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 240);
-					NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_offset.page,flash_offset.column,240,nand_spi_flash_str_error(errid));
-					flash_offset.column += 240;
-					flash_write_data_offset = 0;
-			}
+    ret_code_t ret = nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 4]);
+    if (ret == NRF_SUCCESS) //When new data is acquired
+    {
 
-			if ((flash_offset.column == 4080) && (flash_write_data_offset == 17)) //this indicates the true column number is 4080, the rest data need to be stored
-			{
+        nrf_queue_pop(&flash_accx_queue, &flash_write_buffer[flash_write_data_offset * 4 + 1]);
+        nrf_queue_pop(&flash_accy_queue, &flash_write_buffer[flash_write_data_offset * 4 + 2]);
+        nrf_queue_pop(&flash_accz_queue, &flash_write_buffer[flash_write_data_offset * 4 + 3]);
 
-					flash_write_buffer[68] = spo2;
-					flash_write_buffer[69] = bodytemp;
-					*(uint32_t *)&flash_write_buffer[70] = millis;
-					errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
-					NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s",flash_offset.block,flash_offset.page,flash_offset.column,144,nand_spi_flash_str_error(errid));
-					flash_offset.column = 0;
-					flash_write_data_offset = 0;
-					flash_offset.page++;
-					if (flash_offset.page == 64)
-					{
+        flash_write_data_offset++;
 
-							flash_offset.page = 0;
-							flash_offset.block++;
-							if (flash_offset.block == 2048)
-							{
-									flash_write_full = true;
-									//flash_write_cycle++;
-									//flash_offset.block = 0;
-							}
+        if (flash_write_data_offset == 30)
+        {
+            if (flash_offset.page == 0 && flash_offset.column == 0) //needs to be write but block not erased
+            {
 
-					}
-			}
-   }
+                errid = NSF_ERR_ERASE;
+                while (errid == NSF_ERR_ERASE)
+                {
 
+                    NRF_LOG_INFO("erasing block %d", flash_offset.block);
+                    NRF_LOG_FLUSH();
+                    errid = nand_spi_flash_block_erase(flash_offset.block << 6);
+                    if (errid == NSF_ERR_ERASE)
+                    {
+
+                        NRF_LOG_INFO("found bad block %d", flash_offset.block);
+                        nand_flash_bad_blocks[nand_flash_bad_block_num++] = flash_offset.block; //store the bad block
+
+                        flash_offset.block++;
+
+                        if (flash_offset.block == 2048)
+                        {
+                            flash_write_full = true;
+                        }
+                    }
+                }
+            }
+
+            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 240);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 240, nand_spi_flash_str_error(errid));
+            flash_offset.column += 240;
+            flash_write_data_offset = 0;
+        }
+
+        if ((flash_offset.column == 4080) && (flash_write_data_offset == 17)) //this indicates the true column number is 4080, the rest data need to be stored
+        {
+
+            flash_write_buffer[68] = spo2;
+            flash_write_buffer[69] = bodytemp;
+            *(uint32_t *)&flash_write_buffer[70] = millis;
+            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
+            //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 144, nand_spi_flash_str_error(errid));
+            flash_offset.column = 0;
+            flash_write_data_offset = 0;
+            flash_offset.page++;
+            if (flash_offset.page == 64)
+            {
+
+                flash_offset.page = 0;
+                flash_offset.block++;
+                if (flash_offset.block == 2048)
+                {
+                    flash_write_full = true;
+                    //flash_write_cycle++;
+                    //flash_offset.block = 0;
+                }
+            }
+        }
+    }
 }
 
 bool is_read = false;
@@ -1261,7 +1265,7 @@ static void nand_flash_data_read()
         ret = ble_nus_data_send(&m_nus, readbuf, &llength, m_conn_handle);
         if (ret == NRF_SUCCESS)
         {
-            NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s",flash_read.block,flash_read.page,flash_read.column,192,nand_spi_flash_str_error(errid));
+            //NRF_LOG_INFO("send success block %d, page %d, column %d, size %d, %s", flash_read.block, flash_read.page, flash_read.column, 192, nand_spi_flash_str_error(errid));
             is_read = false;
             flash_read.column += 192;
             if (flash_read.column == 4224)
@@ -1277,9 +1281,9 @@ static void nand_flash_data_read()
 
                     if (flash_read.block == 2048)
                     {
-                      //Read completed, return to block 0
-											flash_offset.block = 0;    //TODO: check the block 0
-											flash_write_full = false;
+                        //Read completed, return to block 0
+                        flash_offset.block = 0; //TODO: check the block 0
+                        flash_write_full = false;
                     }
 
                     while (is_bad_block_existed(flash_read.block))
@@ -1288,8 +1292,8 @@ static void nand_flash_data_read()
                         flash_read.block++;
                         if (flash_read.block == 2048)
                         {
-                            flash_offset.block = 0;    //TODO: check the block 0
-														flash_write_full = false;
+                            flash_offset.block = 0; //TODO: check the block 0
+                            flash_write_full = false;
                         }
                     }
                 }
@@ -1357,12 +1361,12 @@ int main(void)
                 nand_flash_data_read();
             }
         }
-				if(!flash_write_full){
-					
-						nand_flash_data_write();
-				
-				}
-					
+        if (!flash_write_full)
+        {
+
+            nand_flash_data_write();
+        }
+
         idle_state_handle();
     }
 }
