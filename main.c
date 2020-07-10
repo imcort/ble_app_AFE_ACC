@@ -1394,6 +1394,18 @@ static void nand_flash_data_read()
 
                 flash_read.column = 0;
                 flash_read.page++;
+							
+								//Writing to FDS
+								//NRF_LOG_INFO("FDS updating flash read");
+								m_fds_updated = false;
+								ret = fds_record_update(&flash_read_desc, &m_flash_read_record);
+								//NRF_LOG_INFO("FDS flash error:%d", ret);
+								//FDS_ERR_INVALID_ARG
+								APP_ERROR_CHECK(ret);
+								while(!m_fds_updated) __WFE();
+								//NRF_LOG_INFO("FDS updated");
+							
+							
                 if (flash_read.page == 64)
                 {
 
