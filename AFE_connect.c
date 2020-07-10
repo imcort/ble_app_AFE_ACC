@@ -1,9 +1,7 @@
 #include "AFE_connect.h"
 
 #include <stdint.h>
-#include "nrf_drv_twi.h"
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
+#include "iic_transfer_handler.h"
 #include "nrf_gpio.h"
 
 void AFE_Reg_Write(uint8_t reg_address, uint32_t data);
@@ -16,55 +14,14 @@ void set_led_currents(uint8_t led1_current, uint8_t led2_current, uint8_t led3_c
 uint8_t TIA_GAIN_PHASE1 = 0;
 uint8_t TIA_GAIN_PHASE2 = 0;
 
-/* TWI instance ID. */
-#define TWI_INSTANCE_ID 0
-
-/* Indicates if operation on TWI has ended. */
-volatile bool m_xfer_done = false;
-
-/* TWI instance. */
-const nrf_drv_twi_t m_twi = NRF_DRV_TWI_INSTANCE(TWI_INSTANCE_ID);
-
-/**
- * @brief TWI events handler.
- */
-void twi_handler(nrf_drv_twi_evt_t const *p_event, void *p_context)
-{
-	switch (p_event->type)
-	{
-	case NRF_DRV_TWI_EVT_DONE:
-		m_xfer_done = true;
-		break;
-	default:
-		break;
-	}
-}
-
-void twi_init(void)
-{
-	ret_code_t err_code;
-
-	const nrf_drv_twi_config_t twi_afe_config = {
-		.scl = BOARD_SCL_PIN,
-		.sda = BOARD_SDA_PIN,
-		.frequency = NRF_DRV_TWI_FREQ_100K,
-		.interrupt_priority = APP_IRQ_PRIORITY_HIGH,
-		.clear_bus_init = false};
-
-	err_code = nrf_drv_twi_init(&m_twi, &twi_afe_config, NULL, NULL);
-	APP_ERROR_CHECK(err_code);
-
-	nrf_drv_twi_enable(&m_twi);
-}
-
 void AFE_shutdown()
 {
-	nrf_gpio_pin_clear(0);
+	nrf_gpio_pin_clear(AFE_CS_PIN);
 }
 
 void AFE_enable()
 {
-	nrf_gpio_pin_set(0);
+	nrf_gpio_pin_set(AFE_CS_PIN);
 	
 	AFE_Reg_Write(DIAGNOSIS, 0x08);	   //Reset Page 35
 	AFE_Reg_Write(SETTINGS, 0x124218); //100mA LED Current Page 53
@@ -134,9 +91,8 @@ void AFE_enable()
 
 void AFEinit(void)
 {
-	twi_init();
 
-	nrf_gpio_cfg_output(0);
+	nrf_gpio_cfg_output(AFE_CS_PIN);
 	
 	AFE_enable();
 	
@@ -254,36 +210,32 @@ inline void set_led_currents(uint8_t led1_current, uint8_t led2_current, uint8_t
 
 void AFE_Reg_Write(uint8_t reg_address, uint32_t data)
 {
-	uint8_t configData[4];
-	configData[0] = reg_address;
-	configData[1] = (data >> 16) & 0xff;
-	configData[2] = (data >> 8) & 0xff;
-	configData[3] = data & 0xff;
-
-	ret_code_t err_code;
-	m_xfer_done = false;
-	err_code = nrf_drv_twi_tx(&m_twi, AFE_ADDR, configData, 4, false);
-	APP_ERROR_CHECK(err_code);
-
-	//while (m_xfer_done == false){};
+	uint8_t configData[3];
+	configData[0] = (data >> 16) & 0xff;
+	configData[1] = (data >> 8) & 0xff;
+	configData[2] = data & 0xff;
+	
+	twi_writeRegisters(AFE_ADDR, reg_address, configData, 3);
 }
 
 signed long AFE_Reg_Read(uint8_t reg_address)
 {
 	uint8_t configData[3];
 	signed long retVal;
+	
+	twi_readRegisters(AFE_ADDR, reg_address, configData, 3);
 
-	ret_code_t err_code;
+//	ret_code_t err_code;
 
-	m_xfer_done = false;
-	err_code = nrf_drv_twi_tx(&m_twi, AFE_ADDR, &reg_address, 1, true);
-	APP_ERROR_CHECK(err_code);
-	//while (m_xfer_done == false){};
+//	m_xfer_done = false;
+//	err_code = nrf_drv_twi_tx(&m_twi, AFE_ADDR, &reg_address, 1, true);
+//	APP_ERROR_CHECK(err_code);
+//	while (m_xfer_done == false) __WFE();
 
-	m_xfer_done = false;
-	err_code = nrf_drv_twi_rx(&m_twi, AFE_ADDR, configData, 3);
-	APP_ERROR_CHECK(err_code);
-	//while (m_xfer_done == false){};
+//	m_xfer_done = false;
+//	err_code = nrf_drv_twi_rx(&m_twi, AFE_ADDR, configData, 3);
+//	APP_ERROR_CHECK(err_code);
+//	while (m_xfer_done == false) __WFE();
 
 	retVal = configData[0];
 	retVal = (retVal << 8) | configData[1];
@@ -304,18 +256,8 @@ int16_t AFE_Reg_Read_int16(uint8_t reg_address)
 {
 	uint8_t configData[3];
 	int32_t retVal;
-
-	ret_code_t err_code;
-
-	m_xfer_done = false;
-	err_code = nrf_drv_twi_tx(&m_twi, AFE_ADDR, &reg_address, 1, true);
-	APP_ERROR_CHECK(err_code);
-	//while (m_xfer_done == false){};
-
-	m_xfer_done = false;
-	err_code = nrf_drv_twi_rx(&m_twi, AFE_ADDR, configData, 3);
-	APP_ERROR_CHECK(err_code);
-	//while (m_xfer_done == false){};
+	
+	twi_readRegisters(AFE_ADDR, reg_address, configData, 3);
 
 	retVal = configData[0];
 	retVal = (retVal << 8) | configData[1];

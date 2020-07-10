@@ -1,8 +1,6 @@
 #ifndef AFE_CONNECT_H
 #define AFE_CONNECT_H
 
-#define BOARD_SDA_PIN 18
-#define BOARD_SCL_PIN 20
 #define AFE_CS_PIN 0
 
 /* AFE I2C address */

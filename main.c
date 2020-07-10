@@ -95,6 +95,8 @@
 #include "nrf_drv_clock.h"
 #include "fds.h"
 
+#include "iic_transfer_handler.h"
+
 //#define DEBUG_MODE
 
 #define APP_BLE_CONN_CFG_TAG 1 /**< A tag identifying the SoftDevice BLE configuration. */
@@ -1117,18 +1119,6 @@ static void fds_gc_process(){
 	APP_ERROR_CHECK(ret);
 	
 	NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
-	
-//	if(stat.freeable_words > 500){
-//		
-//		m_fds_gc = false;
-//		ret = fds_gc();
-//		APP_ERROR_CHECK(ret);
-//		
-//		while(!m_fds_gc) __WFE();
-//		
-//		NRF_LOG_INFO("FDS gc cleared");
-//	
-//	}
 
 }
 
@@ -1531,7 +1521,8 @@ int main(void)
 
     // Start execution.
     advertising_start();
-
+		
+		twi_init();
     AFEinit();
     MC36XXstart();
     saadc_init();
@@ -1565,8 +1556,6 @@ int main(void)
 
             nand_flash_data_write();
         }
-				
-				//fds_gc_process();
 
         idle_state_handle();
     }

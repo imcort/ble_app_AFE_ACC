@@ -312,7 +312,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -406,6 +406,11 @@
               <FileName>nand_spi_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\nand_spi_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>iic_transfer_handler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\iic_transfer_handler.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3623,6 +3628,11 @@
               <FileName>nand_spi_flash.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\nand_spi_flash.c</FilePath>
+            </File>
+            <File>
+              <FileName>iic_transfer_handler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\iic_transfer_handler.c</FilePath>
             </File>
           </Files>
         </Group>

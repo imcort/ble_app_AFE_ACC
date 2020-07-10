@@ -20,12 +20,8 @@
  */
 
 #include "MC36XX.h"
-#include "nrf_drv_twi.h"
+#include "iic_transfer_handler.h"
 #include "nrf_delay.h"
-
-#include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-#include "nrf_log_default_backends.h"
 
 #ifdef MC36XX_CFG_BUS_I2C
     #define MC36XX_CFG_I2C_ADDR        (0x4C)
@@ -39,42 +35,24 @@
 
 uint8_t CfgRange, CfgResolution, CfgFifo, CfgINT;
 
-extern nrf_drv_twi_t m_twi;
-
 // Read 8-bit from register
 uint8_t MC36XXreadRegister8(uint8_t reg)
 {
     uint8_t value;
-		MC36XXreadRegisters(reg, &value, 1);
+		twi_readRegisters(MC36XX_CFG_I2C_ADDR, reg, &value, 1);
     return value;
 }
 
 // Repeated Read Byte(s) from register
 void MC36XXreadRegisters(uint8_t reg, uint8_t *buffer, uint8_t len)
 {
-#ifdef MC36XX_CFG_BUS_I2C
-	ret_code_t err_code;
-	
-	err_code = nrf_drv_twi_tx(&m_twi, MC36XX_CFG_I2C_ADDR, &reg, 1, true);
-	APP_ERROR_CHECK(err_code);
-		
-	err_code = nrf_drv_twi_rx(&m_twi, MC36XX_CFG_I2C_ADDR, buffer, len);
-	APP_ERROR_CHECK(err_code);
-#endif
-
+	twi_readRegisters(MC36XX_CFG_I2C_ADDR, reg, buffer, len);
 }
 
 // Write 8-bit to register
 void MC36XXwriteRegister8(uint8_t reg, uint8_t value)
 {
-	uint8_t configData[2];
-	configData[0] = reg;
-  configData[1] = value;
-	
-	ret_code_t err_code;
-	err_code = nrf_drv_twi_tx(&m_twi, MC36XX_CFG_I2C_ADDR, configData, 2, false);
-	APP_ERROR_CHECK(err_code);
-
+	twi_writeRegisters(MC36XX_CFG_I2C_ADDR, reg, &value, 1);
 }
 
 //Initialize the MC36XX sensor and set as the default configuration
