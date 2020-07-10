@@ -1045,9 +1045,14 @@ static void ble_rt_send(void)
 static bool volatile m_fds_initialized;
 static bool volatile m_fds_writed;
 static bool volatile m_fds_updated;
+static bool volatile m_fds_gc;
 
-fds_record_desc_t desc = {0};
 fds_find_token_t tok = {0};
+
+fds_record_desc_t flash_offset_desc = {0};
+fds_record_desc_t flash_read_desc = {0};
+fds_record_desc_t flash_badblock_desc = {0};
+
 
 ////////////////////////////////////////////FDS
 
@@ -1106,10 +1111,31 @@ static fds_record_t const m_flash_bad_block_record =
 
 static void m_log_timer_handler(void *p_context)
 {
-
+		fds_gc_process();
     NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
     NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
 	
+}
+
+static void fds_gc_process(){
+	
+	fds_stat_t stat = {0};
+	
+	ret_code_t ret = fds_stat(&stat);
+	APP_ERROR_CHECK(ret);
+	
+	if(stat.pages_available < 5){
+		
+		m_fds_gc = false;
+		ret = fds_gc();
+		APP_ERROR_CHECK(ret);
+		
+		while(!m_fds_gc) __WFE();
+		
+		NRF_LOG_INFO("FDS gc cleared");
+	
+	}
+
 }
 
 static void nand_flash_prepare(void)
@@ -1126,22 +1152,89 @@ static void nand_flash_prepare(void)
     errid = nand_spi_flash_reset_unlock();
     NRF_LOG_INFO("nand_spi_flash_reset_unlock:%s", nand_spi_flash_str_error(errid));
 		
+		fds_gc_process();
+		
+		//Preparing flash offset
 		memset(&tok, 0x00, sizeof(fds_find_token_t));
-		ret = fds_record_find(FLASH_STATUS_FILE_ID, FLASH_OFFSET_KEY, &desc, &tok);
+		ret = fds_record_find(FLASH_STATUS_FILE_ID, FLASH_OFFSET_KEY, &flash_offset_desc, &tok);
 		
 		if(ret == NRF_SUCCESS)
 		{
 		
-			NRF_LOG_INFO("FDS found flash offset");
-			m_fds_updated = false;
-			ret = fds_record_update(&desc, &m_flash_offset_record);
+			NRF_LOG_INFO("FDS found flash offset, reading it");
+			fds_flash_record_t temp = {0};
+			ret = fds_record_open(&flash_offset_desc, &temp);
 			APP_ERROR_CHECK(ret);
-			while(!m_fds_updated) __WFE();
-			NRF_LOG_INFO("FDS flash offset updated");
+			memcpy(&flash_offset, temp.p_data, sizeof(flash_offset));
+			ret = fds_record_close(&flash_offset_desc);
+			APP_ERROR_CHECK(ret);
 			
 		} else {
 			
-			NRF_LOG_INFO("FDS flash offset not found.");
+			NRF_LOG_INFO("FDS flash offset not found. writing");
+			m_fds_writed = false;
+			ret = fds_record_write(&flash_offset_desc, &m_flash_offset_record);
+			NRF_LOG_INFO("FDS flash error:%d", ret);
+			//FDS_ERR_INVALID_ARG
+			APP_ERROR_CHECK(ret);
+			while(!m_fds_writed) __WFE();
+			NRF_LOG_INFO("FDS flash offset writed.");
+		
+		}
+		
+		//Preparing flash read
+		memset(&tok, 0x00, sizeof(fds_find_token_t));
+		ret = fds_record_find(FLASH_STATUS_FILE_ID, FLASH_READ_KEY, &flash_read_desc, &tok);
+		
+		if(ret == NRF_SUCCESS)
+		{
+		
+			NRF_LOG_INFO("FDS found flash read, reading it");
+			fds_flash_record_t temp = {0};
+			ret = fds_record_open(&flash_read_desc, &temp);
+			APP_ERROR_CHECK(ret);
+			memcpy(&flash_read, temp.p_data, sizeof(flash_read));
+			ret = fds_record_close(&flash_read_desc);
+			APP_ERROR_CHECK(ret);
+			
+		} else {
+			
+			NRF_LOG_INFO("FDS flash read not found. writing");
+			m_fds_writed = false;
+			ret = fds_record_write(&flash_read_desc, &m_flash_read_record);
+			NRF_LOG_INFO("FDS flash error:%d", ret);
+			//FDS_ERR_INVALID_ARG
+			APP_ERROR_CHECK(ret);
+			while(!m_fds_writed) __WFE();
+			NRF_LOG_INFO("FDS flash read writed.");
+		
+		}
+		
+		//Preparing flash badblock
+		memset(&tok, 0x00, sizeof(fds_find_token_t));
+		ret = fds_record_find(FLASH_STATUS_FILE_ID, FLASH_BADBLOCK_KEY, &flash_badblock_desc, &tok);
+		
+		if(ret == NRF_SUCCESS)
+		{
+		
+			NRF_LOG_INFO("FDS found flash badblock, reading it");
+			fds_flash_record_t temp = {0};
+			ret = fds_record_open(&flash_badblock_desc, &temp);
+			APP_ERROR_CHECK(ret);
+			memcpy(&nand_flash_bad_blocks, temp.p_data, sizeof(nand_flash_bad_blocks));
+			ret = fds_record_close(&flash_badblock_desc);
+			APP_ERROR_CHECK(ret);
+			
+		} else {
+			
+			NRF_LOG_INFO("FDS flash badblock not found. writing");
+			m_fds_writed = false;
+			ret = fds_record_write(&flash_badblock_desc, &m_flash_bad_block_record);
+			NRF_LOG_INFO("FDS flash error:%d", ret);
+			//FDS_ERR_INVALID_ARG
+			APP_ERROR_CHECK(ret);
+			while(!m_fds_writed) __WFE();
+			NRF_LOG_INFO("FDS flash badblock writed.");
 		
 		}
 		
@@ -1226,6 +1319,17 @@ static void nand_flash_data_write(void)
             flash_offset.column = 0;
             flash_write_data_offset = 0;
             flash_offset.page++;
+						
+						//Writing to FDS
+						NRF_LOG_INFO("FDS updating flash offset");
+						m_fds_writed = false;
+						ret = fds_record_update(&flash_offset_desc, &m_flash_offset_record);
+						//NRF_LOG_INFO("FDS flash error:%d", ret);
+						//FDS_ERR_INVALID_ARG
+						APP_ERROR_CHECK(ret);
+						while(!m_fds_updated) __WFE();
+						NRF_LOG_INFO("FDS updated");
+						
             if (flash_offset.page == 64)
             {
 
@@ -1306,7 +1410,7 @@ static void nand_flash_data_read()
 
 static void fds_evt_handler(fds_evt_t const *p_evt)
 {
-    NRF_LOG_INFO("Event: %d received (%d)", p_evt->id, p_evt->result);
+    //NRF_LOG_INFO("Event: %d received (%d)", p_evt->id, p_evt->result);
 
     switch (p_evt->id)
     {
@@ -1322,9 +1426,6 @@ static void fds_evt_handler(fds_evt_t const *p_evt)
         if (p_evt->result == FDS_SUCCESS)
         {
 						m_fds_writed = true;
-//            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
-//            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
-//            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
         }
     }
     break;
@@ -1334,9 +1435,15 @@ static void fds_evt_handler(fds_evt_t const *p_evt)
         if (p_evt->result == FDS_SUCCESS)
         {
 						m_fds_updated = true;
-//            NRF_LOG_INFO("Record ID:\t0x%04x", p_evt->write.record_id);
-//            NRF_LOG_INFO("File ID:\t0x%04x", p_evt->write.file_id);
-//            NRF_LOG_INFO("Record key:\t0x%04x", p_evt->write.record_key);
+        }
+    }
+    break;
+		
+		case FDS_EVT_GC:
+    {
+        if (p_evt->result == FDS_SUCCESS)
+        {
+						m_fds_gc = true;
         }
     }
     break;
@@ -1399,6 +1506,7 @@ int main(void)
     AFEinit();
     MC36XXstart();
     saadc_init();
+		fds_prepare();
     nand_flash_prepare();
 
     timers_start();
