@@ -1523,14 +1523,17 @@ int main(void)
     advertising_start();
 		
 		twi_init();
+		
     AFEinit();
+		AFE_shutdown();
+		
     MC36XXstart();
     saadc_init();
 		fds_prepare();
     nand_flash_prepare();
 
     timers_start();
-    //AFE_shutdown();
+    
     //MC36XXSetMode(MC36XX_MODE_SLEEP);
 
     NRF_LOG_FLUSH();

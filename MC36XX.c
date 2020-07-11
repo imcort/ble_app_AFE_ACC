@@ -498,9 +498,9 @@ MC36XX_acc_t MC36XXreadRawAccel(void)
     AccRaw.XAxis = (short) (x);
     AccRaw.YAxis = (short) (y);
     AccRaw.ZAxis = (short) (z);
-    AccRaw.XAxis_g = (float) (x)/faResolution[CfgResolution]*faRange[CfgRange];
-    AccRaw.YAxis_g = (float) (y)/faResolution[CfgResolution]*faRange[CfgRange];
-    AccRaw.ZAxis_g = (float) (z)/faResolution[CfgResolution]*faRange[CfgRange];
+//    AccRaw.XAxis_g = (float) (x)/faResolution[CfgResolution]*faRange[CfgRange];
+//    AccRaw.YAxis_g = (float) (y)/faResolution[CfgResolution]*faRange[CfgRange];
+//    AccRaw.ZAxis_g = (float) (z)/faResolution[CfgResolution]*faRange[CfgRange];
 
     return AccRaw;
 }
