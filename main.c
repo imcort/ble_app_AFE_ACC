@@ -1082,11 +1082,11 @@ static void ble_rt_send(void)
     ret_code_t ret = nrf_queue_pop(&rt_ecg_queue, &rt_send_buffer[ble_rt_send_offset * 6]);
     if (ret == NRF_SUCCESS)
     {
-        nrf_queue_pop(&rt_accx_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 1]);
-        nrf_queue_pop(&rt_accy_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 2]);
-        nrf_queue_pop(&rt_accz_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 3]);
-        nrf_queue_pop(&rt_ppgr_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 4]);
-        nrf_queue_pop(&rt_ppgir_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 5]);
+        nrf_queue_pop(&rt_ppgr_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 1]);
+        nrf_queue_pop(&rt_ppgir_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 2]);
+        nrf_queue_pop(&rt_accx_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 3]);
+        nrf_queue_pop(&rt_accy_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 4]);
+        nrf_queue_pop(&rt_accz_queue, &rt_send_buffer[ble_rt_send_offset * 6 + 5]);
 
         ble_rt_send_offset++;
     }
