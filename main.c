@@ -1331,9 +1331,9 @@ static void nand_flash_data_write(void)
         if ((flash_offset.column == 4080) && (flash_write_data_offset == 17)) //this indicates the true column number is 4080, the rest data need to be stored
         {
 
-            flash_write_buffer[68] = spo2;
-            flash_write_buffer[69] = bodytemp;
-            *(uint32_t *)&flash_write_buffer[70] = millis;
+            flash_write_buffer[68] = spo2;    	//4217-4218
+            flash_write_buffer[69] = bodytemp;	//4219-4220
+            *(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
             errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
             //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 144, nand_spi_flash_str_error(errid));
             flash_offset.column = 0;
