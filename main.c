@@ -292,13 +292,15 @@ static void m_millis_timer_handler(void *p_context)
 
 static void m_log_timer_handler(void *p_context);
 
+bool sendfreq_division = true;
+
 static void m_fastACQ_timer_handler(void *p_context)
 {
 
     nrf_saadc_value_t saadc_val;
     nrfx_saadc_sample_convert(3, &saadc_val);
     nrf_queue_push(&flash_ecg_queue, &saadc_val);
-    if (in_rt_mode && is_connected)
+    if (in_rt_mode && is_connected && sendfreq_division)
     {
         nrf_queue_push(&rt_ecg_queue, &saadc_val);
     }
@@ -307,14 +309,14 @@ static void m_fastACQ_timer_handler(void *p_context)
     nrf_queue_push(&flash_accx_queue, &(rawAccel.XAxis));
     nrf_queue_push(&flash_accy_queue, &(rawAccel.YAxis));
     nrf_queue_push(&flash_accz_queue, &(rawAccel.ZAxis));
-    if (in_rt_mode && is_connected)
+    if (in_rt_mode && is_connected && sendfreq_division)
     {
         nrf_queue_push(&rt_accx_queue, &(rawAccel.XAxis));
         nrf_queue_push(&rt_accy_queue, &(rawAccel.YAxis));
         nrf_queue_push(&rt_accz_queue, &(rawAccel.ZAxis));
     }
 
-    if (in_rt_mode && is_connected)
+    if (in_rt_mode && is_connected && sendfreq_division)
     {
         int16_t ppgr_val = AFE_Reg_Read_int16(LED1VAL);
         int16_t ppgir_val = AFE_Reg_Read_int16(LED2VAL);
@@ -322,6 +324,8 @@ static void m_fastACQ_timer_handler(void *p_context)
         nrf_queue_push(&rt_ppgr_queue, &ppgr_val);
         nrf_queue_push(&rt_ppgir_queue, &ppgir_val);
     }
+		
+		sendfreq_division = !sendfreq_division;
 
 #ifdef DEBUG_MODE
     float adcval;
