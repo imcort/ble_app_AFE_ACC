@@ -299,6 +299,7 @@ static void m_fastACQ_timer_handler(void *p_context)
 
     nrf_saadc_value_t saadc_val;
     nrfx_saadc_sample_convert(3, &saadc_val);
+		//saadc_val = 32767.0 * sin(millis * 0.0126f);
     nrf_queue_push(&flash_ecg_queue, &saadc_val);
     if (in_rt_mode && is_connected && sendfreq_division)
     {
@@ -1331,9 +1332,11 @@ static void nand_flash_data_write(void)
         if ((flash_offset.column == 4080) && (flash_write_data_offset == 17)) //this indicates the true column number is 4080, the rest data need to be stored
         {
 
-            flash_write_buffer[68] = spo2;    	//4217-4218
-            flash_write_buffer[69] = bodytemp;	//4219-4220
-            *(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
+            flash_write_buffer[68] = spo2;    		//4217-4218
+            flash_write_buffer[69] = bodytemp;		//4219-4220
+						flash_write_buffer[70] = millis >> 16;	//4221-4222
+						flash_write_buffer[71] = millis;			//4223-4224
+            //*(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
             errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
             //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 144, nand_spi_flash_str_error(errid));
             flash_offset.column = 0;
@@ -1388,7 +1391,7 @@ static void nand_flash_data_read()
             is_read = true;
         }
 
-        readbuf[1] = flash_read.column / 192;
+        *(int16_t*)readbuf = flash_read.column / 192;
 
         uint16_t llength = 194;
         ret = ble_nus_data_send(&m_nus, readbuf, &llength, m_conn_handle);
