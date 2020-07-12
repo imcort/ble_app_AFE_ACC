@@ -176,6 +176,55 @@ bool is_connected = false;
 static const nrf_drv_spi_t spi = NRF_DRV_SPI_INSTANCE(SPI_INSTANCE);
 static volatile bool spi_xfer_done = true;
 
+////////////////////////////////////////////////////////////////////////////////////////////////NANDFLASH
+#define FLASH_STATUS_FILE_ID (0xF010)
+#define FLASH_OFFSET_KEY     (0x7011)
+#define FLASH_READ_KEY       (0x7012)
+#define FLASH_BADBLOCK_KEY   (0x7013)
+
+static bool volatile m_fds_initialized;
+static bool volatile m_fds_writed;
+static bool volatile m_fds_updated;
+static bool volatile m_fds_gc;
+
+fds_find_token_t tok = {0};
+
+fds_record_desc_t flash_offset_desc = {0};
+fds_record_desc_t flash_read_desc = {0};
+fds_record_desc_t flash_badblock_desc = {0};
+
+
+////////////////////////////////////////////FDS
+
+typedef struct
+{
+
+    uint16_t column;
+    uint16_t page;
+    uint16_t block;
+		uint16_t __not_used_;
+
+} nand_flash_addr_t;
+
+static nand_flash_addr_t flash_offset = {
+
+    .column = 0,
+    .page = 0,
+    .block = 0
+
+};
+
+static nand_flash_addr_t flash_read = {
+
+    .column = 0,
+    .page = 0,
+    .block = 0
+
+};
+
+bool flash_write_full = false;
+uint16_t flash_write_data_offset = 0;
+
 /**@brief Function for assert macro callback.
  *
  * @details This function will be called in case of an assert in the SoftDevice.
@@ -432,7 +481,8 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 
     if (p_evt->type == BLE_NUS_EVT_RX_DATA)
     {
-        //uint32_t err_code;
+        char sendbuf[100];
+				uint16_t llength;
         switch (p_evt->params.rx_data.p_data[0])
         {
         case 'a':
@@ -445,9 +495,24 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
             in_flash_send_mode = true;
             break;
         case 'c':
+						
+						llength = sprintf(sendbuf,"nand block: %d, page: %d\nread block:%d, page: %d",flash_offset.block,flash_offset.page,flash_read.block,flash_read.page);
+						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
 
             break;
         case 'd':
+						flash_write_full = true;
+						flash_offset.column = 0;
+						flash_offset.page = 0;
+						flash_offset.block = 0;
+				
+						flash_read.column = 0;
+						flash_read.page = 0;
+						flash_read.block = 0;
+				
+						memset(nand_flash_bad_blocks,0,sizeof(nand_flash_bad_blocks));
+				
+						flash_write_full = false;
 
             break;
         default:
@@ -1035,57 +1100,6 @@ static void ble_rt_send(void)
         ble_rt_send_offset = 0;
     }
 }
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////NANDFLASH
-#define FLASH_STATUS_FILE_ID (0xF010)
-#define FLASH_OFFSET_KEY     (0x7011)
-#define FLASH_READ_KEY       (0x7012)
-#define FLASH_BADBLOCK_KEY   (0x7013)
-
-static bool volatile m_fds_initialized;
-static bool volatile m_fds_writed;
-static bool volatile m_fds_updated;
-static bool volatile m_fds_gc;
-
-fds_find_token_t tok = {0};
-
-fds_record_desc_t flash_offset_desc = {0};
-fds_record_desc_t flash_read_desc = {0};
-fds_record_desc_t flash_badblock_desc = {0};
-
-
-////////////////////////////////////////////FDS
-
-typedef struct
-{
-
-    uint16_t column;
-    uint16_t page;
-    uint16_t block;
-		uint16_t __not_used_;
-
-} nand_flash_addr_t;
-
-static nand_flash_addr_t flash_offset = {
-
-    .column = 0,
-    .page = 0,
-    .block = 0
-
-};
-
-static nand_flash_addr_t flash_read = {
-
-    .column = 0,
-    .page = 0,
-    .block = 0
-
-};
-
-bool flash_write_full = false;
-uint16_t flash_write_data_offset = 0;
 
 static fds_record_t const m_flash_offset_record = 
 {
