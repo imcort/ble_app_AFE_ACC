@@ -312,7 +312,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -411,6 +411,11 @@
               <FileName>iic_transfer_handler.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\iic_transfer_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>spo2_algorithm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\spo2_algorithm.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3633,6 +3638,11 @@
               <FileName>iic_transfer_handler.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\iic_transfer_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>spo2_algorithm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\spo2_algorithm.c</FilePath>
             </File>
           </Files>
         </Group>

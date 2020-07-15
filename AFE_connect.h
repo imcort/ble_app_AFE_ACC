@@ -244,6 +244,7 @@ int32_t AFEget_led1_val(void);
 int32_t AFEget_led2_val(void);
 int32_t AFEget_led3_val(void);
 
+int32_t AFE_Reg_Read(uint8_t reg_address);
 int16_t AFE_Reg_Read_int16(uint8_t reg_address);
 float AFEget_pd_current(uint8_t reg);
 

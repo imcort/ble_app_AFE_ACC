@@ -88,6 +88,7 @@
 #include "nrf_svci_async_handler.h"
 
 #include "math.h"
+#include "spo2_algorithm.h"
 
 #include "nrf_drv_saadc.h"
 #include "nrfx_saadc.h"
@@ -158,6 +159,10 @@ NRF_QUEUE_DEF(int16_t, rt_accy_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_accz_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgr_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgir_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
+				
+int32_t irBuffer[100]; //infrared LED sensor data
+int32_t redBuffer[100];  //red LED sensor data
+int spo2_offset = 0;
 
 int16_t flash_write_buffer[120];
 int16_t rt_send_buffer[122];
@@ -165,6 +170,7 @@ int16_t nand_flash_bad_blocks[40];
 
 uint64_t millis = 0;
 int16_t spo2 = 0;
+int16_t heartRate = 0;
 int16_t bodytemp = 0;
 uint8_t nand_flash_bad_block_num = 0;
 
@@ -348,18 +354,37 @@ static void m_fastACQ_timer_handler(void *p_context)
 
 static void m_slowACQ_timer_handler(void *p_context)
 {
-
-    nrf_saadc_value_t saadc_val;
-    nrfx_saadc_sample_convert(3, &saadc_val);
-    bodytemp = saadc_val;
-
+		
     if (!in_rt_mode)
     {
-
-        AFE_enable();
-        nrf_delay_ms(100);
-        spo2 = AFE_Reg_Read_int16(LED1VAL);
-        AFE_shutdown();
+				redBuffer[spo2_offset + 75] = AFE_Reg_Read(LED2_ALED2VAL);
+				irBuffer[spo2_offset + 75] = AFE_Reg_Read(LED1_ALED1VAL);
+				spo2_offset++;
+        if(spo2_offset == 25){ //got 1 second sample
+					spo2_offset = 0;
+					
+					bool validSPO2 = false;
+					bool validHeartRate = false;
+					
+					int16_t newspo2 = 0;
+					int16_t newheartrate = 0;
+					
+					maxim_heart_rate_and_oxygen_saturation(irBuffer, 100, redBuffer, &newspo2, &validSPO2, &newheartrate, &validHeartRate);
+					
+					NRF_LOG_INFO("SPo2: %d,%d HR:%d,%d",validSPO2,newspo2,validHeartRate,newheartrate);
+					
+					if(validSPO2) spo2 = newspo2;
+					if(validHeartRate) heartRate = newheartrate;
+					
+					for (uint8_t i = 25; i < 100; i++)
+					{
+							redBuffer[i - 25] = redBuffer[i];
+							irBuffer[i - 25] = irBuffer[i];
+					}
+					nrf_saadc_value_t saadc_val;
+					nrfx_saadc_sample_convert(3, &saadc_val);
+					bodytemp = saadc_val;
+				}
     }
 }
 
@@ -390,10 +415,10 @@ static void timers_start(void)
     err_code = app_timer_start(millis_timer, APP_TIMER_TICKS(1), NULL);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL);
+    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(1000), NULL);
+    err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(40), NULL); 	//25Hz  SPo2
     APP_ERROR_CHECK(err_code);
 
     err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
@@ -1546,7 +1571,6 @@ int main(void)
 		twi_init();
 		
     AFEinit();
-		AFE_shutdown();
 		
     MC36XXstart();
     saadc_init();

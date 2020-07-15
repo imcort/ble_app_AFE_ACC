@@ -5,7 +5,6 @@
 #include "nrf_gpio.h"
 
 void AFE_Reg_Write(uint8_t reg_address, uint32_t data);
-signed long AFE_Reg_Read(uint8_t reg_address);
 
 void set_tia_gain_phase2(uint8_t cf_setting, uint8_t gain_setting);
 void set_tia_gain_phase1(uint8_t cf_setting, uint8_t gain_setting);
@@ -41,8 +40,8 @@ void AFE_enable()
 	AFE_Reg_Write(LED2_CONV_END, 1468);
 
 	//Set 0 if LED3 is not used. LED3/ALED2
-	AFE_Reg_Write(LED3LEDSTC, 401);
-	AFE_Reg_Write(LED3LEDENDC, 800);
+	AFE_Reg_Write(LED3LEDSTC, 0);
+	AFE_Reg_Write(LED3LEDENDC, 0);
 
 	AFE_Reg_Write(SMPL_LED3_ST, 501);
 	AFE_Reg_Write(SMPL_LED3_END, 800);
@@ -76,15 +75,14 @@ void AFE_enable()
 	AFE_Reg_Write(TIM_NUMAV, 0x100 | 3); //ADC Average num 0-15 Page50
 
 	//	clock div 0->4Mhz, 1=2=3 -> do not use, 4-> 2Mhz, 5->1Mhz, 6->0.5Mhz, 7-> 0.25Mhz
-	AFE_Reg_Write(CLKDIV_PRF, 0); //CLKDIV Page62
+	AFE_Reg_Write(CLKDIV_PRF, 5); //CLKDIV Page62
 
-	set_led_currents(10, 10, 0); // parm1 -> LED1, | parm2 -> LED2, | parm3 -> LED3,    each is 6 bit resolution (0-63)
+	set_led_currents(5, 10, 0); // parm1 -> LED1, | parm2 -> LED2, | parm3 -> LED3,    each is 6 bit resolution (0-63)
 								 //For epidermal: IR,Red,Null
-
-	set_tia_gain_phase2(2, GAIN_RES_50K);  // parm1 -> true = separate TIA, | parm2 -> C2 val.(0-7) , | parm3 -> R2 val.(0-7)
-										   // TODO : what is its use?
-	set_tia_gain_phase1(2, GAIN_RES_500K); // parm1 -> true =  control with PROG_TG_STC and ENDC, | parm2 -> C1 val.(0-7) , | parm3 -> R1 val.(0-7)
-
+	
+	set_tia_gain_phase1(2, GAIN_RES_50K);
+	set_tia_gain_phase2(2, GAIN_RES_50K);
+	
 	DAC_settings();
 	
 }
@@ -96,8 +94,6 @@ void AFEinit(void)
 	
 	AFE_enable();
 	
-	AFE_shutdown();
-	
 }
 
 void DAC_settings(void)
@@ -107,8 +103,8 @@ void DAC_settings(void)
 	reg_val |= (0 << I_OFFDAC_LED2);
 	reg_val |= (0 << POL_OFFDAC_AMB1);
 	reg_val |= (0 << I_OFFDAC_AMB1);
-	reg_val |= (1 << POL_OFFDAC_LED1);
-	reg_val |= (2 << I_OFFDAC_LED1);
+	reg_val |= (0 << POL_OFFDAC_LED1);
+	reg_val |= (0 << I_OFFDAC_LED1);
 	reg_val |= (0 << POL_OFFDAC_LED3);
 	reg_val |= (0 << I_OFFDAC_LED3);
 	AFE_Reg_Write(DAC_SETTING, reg_val);
@@ -218,24 +214,12 @@ void AFE_Reg_Write(uint8_t reg_address, uint32_t data)
 	twi_writeRegisters(AFE_ADDR, reg_address, configData, 3);
 }
 
-signed long AFE_Reg_Read(uint8_t reg_address)
+int32_t AFE_Reg_Read(uint8_t reg_address)
 {
 	uint8_t configData[3];
 	signed long retVal;
 	
 	twi_readRegisters(AFE_ADDR, reg_address, configData, 3);
-
-//	ret_code_t err_code;
-
-//	m_xfer_done = false;
-//	err_code = nrf_drv_twi_tx(&m_twi, AFE_ADDR, &reg_address, 1, true);
-//	APP_ERROR_CHECK(err_code);
-//	while (m_xfer_done == false) __WFE();
-
-//	m_xfer_done = false;
-//	err_code = nrf_drv_twi_rx(&m_twi, AFE_ADDR, configData, 3);
-//	APP_ERROR_CHECK(err_code);
-//	while (m_xfer_done == false) __WFE();
 
 	retVal = configData[0];
 	retVal = (retVal << 8) | configData[1];
