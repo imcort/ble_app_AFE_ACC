@@ -98,7 +98,7 @@ void maxim_heart_rate_and_oxygen_saturation(int16_t *pun_ir_buffer, int16_t n_ir
 * \retval       None
 */
 {
-  int16_t un_ir_mean;
+  int32_t un_ir_mean;
   int16_t k, n_i_ratio_count;
   int16_t i, n_exact_ir_valley_locs_count, n_middle_idx;
   int16_t n_th1, n_npks;
@@ -147,10 +147,8 @@ void maxim_heart_rate_and_oxygen_saturation(int16_t *pun_ir_buffer, int16_t n_ir
   n_peak_interval_sum = 0;
   if (n_npks >= 2)
   {
-    for (k = 1; k < n_npks; k++)
-      n_peak_interval_sum += (an_ir_valley_locs[k] - an_ir_valley_locs[k - 1]);
-    n_peak_interval_sum = n_peak_interval_sum / (n_npks - 1);
-    *pn_heart_rate = (int32_t)((FreqS * 60) / n_peak_interval_sum);
+		n_peak_interval_sum = an_ir_valley_locs[n_npks - 1] - an_ir_valley_locs[0];
+		*pn_heart_rate = (int16_t)((FreqS * 60 * (n_npks - 1)) / n_peak_interval_sum);
     *pch_hr_valid = 1;
   }
   else

@@ -152,7 +152,7 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>162</LineNumber>
+          <LineNumber>160</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>0</Address>
           <ByteObject>0</ByteObject>
@@ -185,12 +185,12 @@
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>an_x</ItemText>
+          <ItemText>an_x,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>n_th1</ItemText>
+          <ItemText>n_th1,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

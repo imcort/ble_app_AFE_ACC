@@ -30,7 +30,7 @@ void AFE_enable()
 	AFE_Reg_Write(PRPCT, 39999);
 
 	//LED2
-	AFE_Reg_Write(LED2_ST, 0);
+	AFE_Reg_Write(LED2_ST, 1);
 	AFE_Reg_Write(LED2_END, 399);
 	AFE_Reg_Write(SMPL_LED2_ST, 100);
 	AFE_Reg_Write(SMPL_LED2_END, 399);
@@ -80,8 +80,8 @@ void AFE_enable()
 	set_led_currents(5, 10, 0); // parm1 -> LED1, | parm2 -> LED2, | parm3 -> LED3,    each is 6 bit resolution (0-63)
 								 //For epidermal: IR,Red,Null
 	
-	set_tia_gain_phase1(2, GAIN_RES_50K);
-	set_tia_gain_phase2(2, GAIN_RES_50K);
+	set_tia_gain_phase1(2, GAIN_RES_500K);
+	set_tia_gain_phase2(2, GAIN_RES_2M);
 	
 	DAC_settings();
 	
@@ -100,11 +100,11 @@ void DAC_settings(void)
 {
 	uint32_t reg_val = 0;
 	reg_val |= (0 << POL_OFFDAC_LED2);
-	reg_val |= (0 << I_OFFDAC_LED2);
+	reg_val |= (2 << I_OFFDAC_LED2);
 	reg_val |= (0 << POL_OFFDAC_AMB1);
 	reg_val |= (0 << I_OFFDAC_AMB1);
 	reg_val |= (0 << POL_OFFDAC_LED1);
-	reg_val |= (0 << I_OFFDAC_LED1);
+	reg_val |= (15 << I_OFFDAC_LED1);
 	reg_val |= (0 << POL_OFFDAC_LED3);
 	reg_val |= (0 << I_OFFDAC_LED3);
 	AFE_Reg_Write(DAC_SETTING, reg_val);

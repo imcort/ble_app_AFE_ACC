@@ -517,7 +517,6 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
         {
         case 'a':
 
-            AFE_enable();
             in_rt_mode = true;
 
             break;
