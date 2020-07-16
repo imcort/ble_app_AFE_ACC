@@ -160,8 +160,8 @@ NRF_QUEUE_DEF(int16_t, rt_accz_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgr_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgir_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 				
-int32_t irBuffer[100]; //infrared LED sensor data
-int32_t redBuffer[100];  //red LED sensor data
+int16_t irBuffer[100]; //infrared LED sensor data
+int16_t redBuffer[100];  //red LED sensor data
 int spo2_offset = 0;
 
 int16_t flash_write_buffer[120];
@@ -357,8 +357,8 @@ static void m_slowACQ_timer_handler(void *p_context)
 		
     if (!in_rt_mode)
     {
-				redBuffer[spo2_offset + 75] = AFE_Reg_Read(LED2_ALED2VAL);
-				irBuffer[spo2_offset + 75] = AFE_Reg_Read(LED1_ALED1VAL);
+				redBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED2_ALED2VAL);
+				irBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED1_ALED1VAL);
 				spo2_offset++;
         if(spo2_offset == 25){ //got 1 second sample
 					spo2_offset = 0;

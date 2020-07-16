@@ -65,13 +65,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-void maxim_heart_rate_and_oxygen_saturation(int32_t *pun_ir_buffer, int32_t n_ir_buffer_length, int32_t *pun_red_buffer, int16_t *pn_spo2, bool *pch_spo2_valid,
+void maxim_heart_rate_and_oxygen_saturation(int16_t *pun_ir_buffer, int16_t n_ir_buffer_length, int16_t *pun_red_buffer, int16_t *pn_spo2, bool *pch_spo2_valid,
                                             int16_t *pn_heart_rate, bool *pch_hr_valid);
 
-void maxim_find_peaks(int32_t *pn_locs, int32_t *n_npks, int32_t *pn_x, int32_t n_size, int32_t n_min_height, int32_t n_min_distance, int32_t n_max_num);
-void maxim_peaks_above_min_height(int32_t *pn_locs, int32_t *n_npks, int32_t *pn_x, int32_t n_size, int32_t n_min_height);
-void maxim_remove_close_peaks(int32_t *pn_locs, int32_t *pn_npks, int32_t *pn_x, int32_t n_min_distance);
-void maxim_sort_ascend(int32_t *pn_x, int32_t n_size);
-void maxim_sort_indices_descend(int32_t *pn_x, int32_t *pn_indx, int32_t n_size);
+void maxim_find_peaks(int16_t *pn_locs, int16_t *n_npks, int16_t *pn_x, int16_t n_size, int16_t n_min_height, int16_t n_min_distance, int16_t n_max_num);
+void maxim_peaks_above_min_height(int16_t *pn_locs, int16_t *n_npks, int16_t *pn_x, int16_t n_size, int16_t n_min_height);
+void maxim_remove_close_peaks(int16_t *pn_locs, int16_t *pn_npks, int16_t *pn_x, int16_t n_min_distance);
+void maxim_sort_ascend(int16_t *pn_x, int16_t n_size);
+void maxim_sort_indices_descend(int16_t *pn_x, int16_t *pn_indx, int16_t n_size);
 
 #endif /* ALGORITHM_H_ */

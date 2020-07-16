@@ -175,7 +175,7 @@
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>irBuffer</ItemText>
+          <ItemText>irBuffer,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
@@ -186,6 +186,11 @@
           <count>3</count>
           <WinNumber>1</WinNumber>
           <ItemText>an_x</ItemText>
+        </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>n_th1</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
