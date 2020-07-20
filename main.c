@@ -152,6 +152,8 @@ NRF_QUEUE_DEF(int16_t, flash_ecg_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accx_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accy_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accz_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
+NRF_QUEUE_DEF(int16_t, flash_ppgr_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
+NRF_QUEUE_DEF(int16_t, flash_ppgir_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 
 NRF_QUEUE_DEF(int16_t, rt_ecg_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_accx_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
@@ -325,58 +327,24 @@ static void m_fastACQ_timer_handler(void *p_context)
 				break;
 			case 3:
 				val = AFE_Reg_Read_int16(LED1VAL);
-				nrf_queue_push(&rt_ppgr_queue, &val);
+				nrf_queue_push(&flash_ppgr_queue, &val);
 				break;
 			case 4:
 				val = AFE_Reg_Read_int16(LED2VAL);
-				nrf_queue_push(&rt_ppgir_queue, &val);
+				nrf_queue_push(&flash_ppgir_queue, &val);
 				break;
 		
 		}
 		
 		state_counter++;
+		if(state_counter == 5)
+			state_counter = 0;
 		
 }
 
 static void m_slowACQ_timer_handler(void *p_context)
 {
-		
-//    if (!in_rt_mode)
-//    {
-//				redBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED2_ALED2VAL);
-//				irBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED1_ALED1VAL);
-//				spo2_offset++;
-//        if(spo2_offset == 25){ //got 1 second sample
-//					spo2_offset = 0;
-//					
-//					//Update temperature every 1 second
-////					nrf_saadc_value_t saadc_val;
-////					nrfx_saadc_sample_convert(3, &saadc_val);
-////					bodytemp = saadc_val;
-////					
-////					int16_t mean = calculate_mean(&redBuffer);
-//					
-//					bool validSPO2 = false;
-//					bool validHeartRate = false;
-//					
-//					int16_t newspo2 = 0;
-//					int16_t newheartrate = 0;
-//					
-//					maxim_heart_rate_and_oxygen_saturation(irBuffer, 100, redBuffer, &newspo2, &validSPO2, &newheartrate, &validHeartRate);
-//					
-//					NRF_LOG_INFO("SPo2: %d,%d HR:%d,%d",validSPO2,newspo2,validHeartRate,newheartrate);
-//					
-//					if(validSPO2) spo2 = newspo2;
-//					if(validHeartRate) heartRate = newheartrate;
-//					
-//					for (uint8_t i = 25; i < 100; i++)
-//					{
-//							redBuffer[i - 25] = redBuffer[i];
-//							irBuffer[i - 25] = irBuffer[i];
-//					}
-//					
-//				}
-//    }
+		//Handling bodytemp, battery voltage
 }
 
 /**@brief Function for initializing the timer module.
@@ -406,10 +374,10 @@ static void timers_start(void)
     err_code = app_timer_start(millis_timer, APP_TIMER_TICKS(1), NULL);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(20), NULL); 		//500Hz ECG, ACC
+    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC, SpO2
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(40), NULL); 	//25Hz  SPo2
+    err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(1000), NULL); 	//1Hz Bodytemp, Battery
     APP_ERROR_CHECK(err_code);
 
 //    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
@@ -1290,17 +1258,22 @@ static void nand_flash_data_write(void)
 
     int errid = 0;
 
-    ret_code_t ret = nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 4]);
-    if (ret == NRF_SUCCESS) //When new data is acquired
+    ret_code_t ret = nrf_queue_pop(&flash_ppgir_queue, &flash_write_buffer[flash_write_data_offset * 10 + 9]); //check the last acquired queue
+    if (ret == NRF_SUCCESS) //When all data is acquired
     {
-
-        nrf_queue_pop(&flash_accx_queue, &flash_write_buffer[flash_write_data_offset * 4 + 1]);
-        nrf_queue_pop(&flash_accy_queue, &flash_write_buffer[flash_write_data_offset * 4 + 2]);
-        nrf_queue_pop(&flash_accz_queue, &flash_write_buffer[flash_write_data_offset * 4 + 3]);
+				nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 10 + 8]);		//ECG
+        nrf_queue_pop(&flash_ppgr_queue, &flash_write_buffer[flash_write_data_offset * 10 + 7]);
+				nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 10 + 6]);		//ECG
+				nrf_queue_pop(&flash_accz_queue, &flash_write_buffer[flash_write_data_offset * 10 + 5]);
+				nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 10 + 4]);		//ECG
+				nrf_queue_pop(&flash_accy_queue, &flash_write_buffer[flash_write_data_offset * 10 + 3]);
+				nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 10 + 2]);		//ECG
+				nrf_queue_pop(&flash_accx_queue, &flash_write_buffer[flash_write_data_offset * 10 + 1]);
+				nrf_queue_pop(&flash_ecg_queue, &flash_write_buffer[flash_write_data_offset * 10]);       //ECG
 
         flash_write_data_offset++;
 
-        if (flash_write_data_offset == 30)
+        if (flash_write_data_offset == 12)
         {
             if (flash_offset.page == 0 && flash_offset.column == 0) //needs to be write but block not erased
             {
@@ -1344,13 +1317,17 @@ static void nand_flash_data_write(void)
             flash_write_data_offset = 0;
         }
 
-        if ((flash_offset.column == 4080) && (flash_write_data_offset == 17)) //this indicates the true column number is 4080, the rest data need to be stored
+        if ((flash_offset.column == 4080) && (flash_write_data_offset == 6)) //this indicates the true column number is 4080, the rest data need to be stored
         {
 
-            flash_write_buffer[68] = spo2;    		//4217-4218
-            flash_write_buffer[69] = bodytemp;		//4219-4220
-						flash_write_buffer[70] = millis >> 16;	//4221-4222
-						flash_write_buffer[71] = millis;			//4223-4224
+            flash_write_buffer[60] = spo2;    			//4200-4201
+            flash_write_buffer[61] = bodytemp;			//4202-4203
+					
+						flash_write_buffer[62] = millis >> 48;	//4204-4205
+						flash_write_buffer[63] = millis >> 32;	//4206-4207
+						flash_write_buffer[64] = millis >> 16;	//4208-4209
+						flash_write_buffer[65] = millis;				//4210-4211
+					
             //*(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
             errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
             //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 144, nand_spi_flash_str_error(errid));
