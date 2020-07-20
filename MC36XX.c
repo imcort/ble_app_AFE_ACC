@@ -504,3 +504,33 @@ MC36XX_acc_t MC36XXreadRawAccel(void)
 
     return AccRaw;
 }
+
+int16_t MC36XXreadXAccel(void)
+{
+		uint8_t rawData[2];
+    // Read the six raw data registers into data array
+    MC36XXreadRegisters(MC36XX_REG_XOUT_LSB, rawData, 2);
+    short x, y, z;
+    return (short)((((unsigned short)rawData[1]) << 8) | rawData[0]);
+
+}
+
+int16_t MC36XXreadYAccel(void)
+{
+		uint8_t rawData[2];
+    // Read the six raw data registers into data array
+    MC36XXreadRegisters(MC36XX_REG_YOUT_LSB, rawData, 2);
+    short x, y, z;
+    return (short)((((unsigned short)rawData[1]) << 8) | rawData[0]);
+
+}
+
+int16_t MC36XXreadZAccel(void)
+{
+		uint8_t rawData[2];
+    // Read the six raw data registers into data array
+    MC36XXreadRegisters(MC36XX_REG_ZOUT_LSB, rawData, 2);
+    short x, y, z;
+    return (short)((((unsigned short)rawData[1]) << 8) | rawData[0]);
+
+}

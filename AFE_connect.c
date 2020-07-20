@@ -4,14 +4,18 @@
 #include "iic_transfer_handler.h"
 #include "nrf_gpio.h"
 
+#include "nrf_log.h"
+
 void AFE_Reg_Write(uint8_t reg_address, uint32_t data);
 
-void set_tia_gain_phase2(uint8_t cf_setting, uint8_t gain_setting);
-void set_tia_gain_phase1(uint8_t cf_setting, uint8_t gain_setting);
+//void set_tia_gain_phase2(uint8_t cf_setting, uint8_t gain_setting);
+//void set_tia_gain_phase1(uint8_t cf_setting, uint8_t gain_setting);
 void set_led_currents(uint8_t led1_current, uint8_t led2_current, uint8_t led3_current);
 
 uint8_t TIA_GAIN_PHASE1 = 0;
 uint8_t TIA_GAIN_PHASE2 = 0;
+
+uint32_t dac_val = 0;
 
 void AFE_shutdown()
 {
@@ -75,15 +79,16 @@ void AFE_enable()
 	AFE_Reg_Write(TIM_NUMAV, 0x100 | 3); //ADC Average num 0-15 Page50
 
 	//	clock div 0->4Mhz, 1=2=3 -> do not use, 4-> 2Mhz, 5->1Mhz, 6->0.5Mhz, 7-> 0.25Mhz
-	AFE_Reg_Write(CLKDIV_PRF, 5); //CLKDIV Page62
+	AFE_Reg_Write(CLKDIV_PRF, 0); //CLKDIV Page62
 
 	set_led_currents(5, 10, 0); // parm1 -> LED1, | parm2 -> LED2, | parm3 -> LED3,    each is 6 bit resolution (0-63)
 								 //For epidermal: IR,Red,Null
 	
-	set_tia_gain_phase1(2, GAIN_RES_500K);
-	set_tia_gain_phase2(2, GAIN_RES_2M);
+	set_tia_gain(1, 50);
+	set_tia_gain(2, 500);
 	
-	DAC_settings();
+	//DAC_settings(1, 8250);
+	//DAC_settings(2, 821);
 	
 }
 
@@ -96,18 +101,145 @@ void AFEinit(void)
 	
 }
 
-void DAC_settings(void)
+void DAC_settings(uint8_t led, int16_t nA)
 {
 	uint32_t reg_val = 0;
-	reg_val |= (0 << POL_OFFDAC_LED2);
-	reg_val |= (2 << I_OFFDAC_LED2);
-	reg_val |= (0 << POL_OFFDAC_AMB1);
-	reg_val |= (0 << I_OFFDAC_AMB1);
-	reg_val |= (0 << POL_OFFDAC_LED1);
-	reg_val |= (15 << I_OFFDAC_LED1);
-	reg_val |= (0 << POL_OFFDAC_LED3);
-	reg_val |= (0 << I_OFFDAC_LED3);
-	AFE_Reg_Write(DAC_SETTING, reg_val);
+	if(nA >= 7000){
+		reg_val = 15;
+	} else if (nA >= 6530)
+	{
+		reg_val = 14;
+	} else if (nA >= 6070)
+	{
+		reg_val = 13;
+	} else if (nA >= 5600)
+	{
+		reg_val = 12;
+	}else if (nA >= 5130)
+	{
+		reg_val = 11;
+	}else if (nA >= 4670)
+	{
+		reg_val = 10;
+	}else if (nA >= 4200)
+	{
+		reg_val = 9;
+	}else if (nA >= 3730)
+	{
+		reg_val = 8;
+	}else if (nA >= 3270)
+	{
+		reg_val = 7;
+	}else if (nA >= 2800)
+	{
+		reg_val = 6;
+	}else if (nA >= 2330)
+	{
+		reg_val = 5;
+	}else if (nA >= 1870)
+	{
+		reg_val = 4;
+	}else if (nA >= 1400)
+	{
+		reg_val = 3;
+	}else if (nA >= 930)
+	{
+		reg_val = 2;
+	}else if (nA >= 470)
+	{
+		reg_val = 1;
+	}else if (nA >= 0)
+	{
+		reg_val = 0;
+	}else if (nA >= -470)
+	{
+		reg_val = 1;
+		reg_val |= 0x10;
+	}else if (nA >= -930)
+	{
+		reg_val = 2;
+		reg_val |= 0x10;
+	}else if (nA >= -1400)
+	{
+		reg_val = 3;
+		reg_val |= 0x10;
+	}else if (nA >= -1870)
+	{
+		reg_val = 4;
+		reg_val |= 0x10;
+	}else if (nA >= -2330)
+	{
+		reg_val = 5;
+		reg_val |= 0x10;
+	}else if (nA >= -2800)
+	{
+		reg_val = 6;
+		reg_val |= 0x10;
+	}else if (nA >= -3270)
+	{
+		reg_val = 7;
+		reg_val |= 0x10;
+	}else if (nA >= -3730)
+	{
+		reg_val = 8;
+		reg_val |= 0x10;
+	}else if (nA >= -4200)
+	{
+		reg_val = 9;
+		reg_val |= 0x10;
+	}else if (nA >= -4670)
+	{
+		reg_val = 10;
+		reg_val |= 0x10;
+	}else if (nA >= -5130)
+	{
+		reg_val = 11;
+		reg_val |= 0x10;
+	}else if (nA >= -5600)
+	{
+		reg_val = 12;
+		reg_val |= 0x10;
+	}else if (nA >= -6070)
+	{
+		reg_val = 13;
+		reg_val |= 0x10;
+	}else if (nA >= -6530)
+	{
+		reg_val = 14;
+		reg_val |= 0x10;
+	}else
+	{
+		reg_val = 15;
+		reg_val |= 0x10;
+	}
+	
+	NRF_LOG_INFO("%d",reg_val&0xf);
+	
+	if(led == 3){
+		dac_val &= (~0x1f);
+		dac_val |= reg_val;
+	} else if(led == 2){
+		dac_val &= (~(0x1f<<15));
+		dac_val |= reg_val<<15;
+	} else if(led == 1){
+		dac_val &= (~(0x1f<<5));
+		dac_val |= reg_val<<5;
+	} else if(led == 0){
+		dac_val &= (~(0x1f<<10));
+		dac_val |= reg_val<<10;
+	}
+	
+	AFE_Reg_Write(DAC_SETTING, dac_val);
+	
+//	reg_val |= (0 << POL_OFFDAC_LED2);
+//	reg_val |= (0 << I_OFFDAC_LED2);
+//	reg_val |= (0 << POL_OFFDAC_AMB1);
+//	reg_val |= (0 << I_OFFDAC_AMB1);
+//	reg_val |= (0 << POL_OFFDAC_LED1);
+//	reg_val |= (0 << I_OFFDAC_LED1);
+//	reg_val |= (0 << POL_OFFDAC_LED3);
+//	reg_val |= (0 << I_OFFDAC_LED3);
+	
 }
 
 int32_t AFEget_led1_val(void)
@@ -133,14 +265,14 @@ float AFEget_ADC_voltage(uint8_t reg)
 	return (float)val * (1.2f / 2097152.0f);
 }
 
-float AFEget_pd_current(uint8_t reg)
+float AFEget_pd_current(uint8_t reg, int32_t val)
 { //micro amps
 
-	int32_t val = AFE_Reg_Read(reg);
+	//int32_t val = AFE_Reg_Read(reg);
 	float ADC_voltage;
 	uint8_t gain_res_val;
 
-	ADC_voltage = (float)val * (1.2f / 2097152.0f);
+	ADC_voltage = (float)val * (2.4f / 65536.0f);
 
 	switch (reg)
 	{
@@ -176,23 +308,82 @@ float AFEget_pd_current(uint8_t reg)
 	return 0.0f;
 }
 
-inline void set_tia_gain_phase2(uint8_t cf_setting, uint8_t gain_setting)
-{
-	uint16_t val = 0;
-	val |= (1 << 15);			//  Separate TIA gains if this bit = 1; else single gain if = 0;
-	val |= (cf_setting << 3);	//  Control of C2 settings (3 bits -> 0-7)
-	val |= (gain_setting << 0); //  Control of R2 settings (3 bits -> 0-7)
-	TIA_GAIN_PHASE2 = gain_setting;
-	AFE_Reg_Write(TIA_GAINS2, val);
-}
+//inline void set_tia_gain_phase2(uint8_t cf_setting, uint8_t gain_setting)
+//{
+//	uint16_t val = 0;
+//	val |= (1 << 15);			//  Separate TIA gains if this bit = 1; else single gain if = 0;
+//	val |= (cf_setting << 3);	//  Control of C2 settings (3 bits -> 0-7)
+//	val |= (gain_setting << 0); //  Control of R2 settings (3 bits -> 0-7)
+//	TIA_GAIN_PHASE2 = gain_setting;
+//	AFE_Reg_Write(TIA_GAINS2, val);
+//}
 
-inline void set_tia_gain_phase1(uint8_t cf_setting, uint8_t gain_setting)
+//inline void set_tia_gain_phase1(uint8_t cf_setting, uint8_t gain_setting)
+//{
+//	uint16_t val = 0;
+//	val |= (cf_setting << 3);	//  Control of C1 settings (3 bits -> 0-7)
+//	val |= (gain_setting << 0); //  Control of R1 settings (3 bits -> 0-7)
+//	TIA_GAIN_PHASE1 = gain_setting;
+//	AFE_Reg_Write(TIA_GAINS1, val);
+//}
+
+void set_tia_gain(uint8_t led, uint16_t gain_k)
 {
 	uint16_t val = 0;
-	val |= (cf_setting << 3);	//  Control of C1 settings (3 bits -> 0-7)
-	val |= (gain_setting << 0); //  Control of R1 settings (3 bits -> 0-7)
-	TIA_GAIN_PHASE1 = gain_setting;
-	AFE_Reg_Write(TIA_GAINS1, val);
+	
+	if(gain_k >= 2000)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_2M);
+	} 
+	else if (gain_k >= 1000)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_1M);
+	} 
+	else if (gain_k >= 500)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_500K);
+	} 
+	else if (gain_k >= 250)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_250K);
+	} 
+	else if (gain_k >= 100)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_100K);
+	} 
+	else if (gain_k >= 50)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_50K);
+	} 
+	else if (gain_k >= 25)
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_25K);
+	} 
+	else
+	{
+		val |= (2 << 3);
+		val |= (GAIN_RES_10K);
+	}
+		
+	if(led == 1)
+	{
+		TIA_GAIN_PHASE1 = val & 7;
+		AFE_Reg_Write(TIA_GAINS1, val);
+	}
+	else if(led == 2)
+	{
+		val |= (1 << 15);
+		TIA_GAIN_PHASE2 = val & 7;
+		AFE_Reg_Write(TIA_GAINS2, val);
+	}
+
 }
 
 inline void set_led_currents(uint8_t led1_current, uint8_t led2_current, uint8_t led3_current)

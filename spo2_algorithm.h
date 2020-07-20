@@ -73,5 +73,8 @@ void maxim_peaks_above_min_height(int16_t *pn_locs, int16_t *n_npks, int16_t *pn
 void maxim_remove_close_peaks(int16_t *pn_locs, int16_t *pn_npks, int16_t *pn_x, int16_t n_min_distance);
 void maxim_sort_ascend(int16_t *pn_x, int16_t n_size);
 void maxim_sort_indices_descend(int16_t *pn_x, int16_t *pn_indx, int16_t n_size);
+void calculate_mean(int16_t *buffer, int16_t length, int16_t* mean);
+void find_min(int16_t *buffer, int16_t length, int16_t* min_value, int16_t* loc);
+void find_max(int16_t *buffer, int16_t length, int16_t* max_value, int16_t* loc);
 
 #endif /* ALGORITHM_H_ */

@@ -159,7 +159,7 @@ NRF_QUEUE_DEF(int16_t, rt_accy_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_accz_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgr_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, rt_ppgir_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
-				
+
 int16_t irBuffer[100]; //infrared LED sensor data
 int16_t redBuffer[100];  //red LED sensor data
 int spo2_offset = 0;
@@ -298,7 +298,7 @@ static void m_millis_timer_handler(void *p_context)
 
 static void m_log_timer_handler(void *p_context);
 
-bool sendfreq_division = true;
+uint8_t state_counter = 0;
 
 static void m_fastACQ_timer_handler(void *p_context)
 {
@@ -307,85 +307,76 @@ static void m_fastACQ_timer_handler(void *p_context)
     nrfx_saadc_sample_convert(3, &saadc_val);
 		//saadc_val = 32767.0 * sin(millis * 0.0126f);
     nrf_queue_push(&flash_ecg_queue, &saadc_val);
-    if (in_rt_mode && is_connected && sendfreq_division)
-    {
-        nrf_queue_push(&rt_ecg_queue, &saadc_val);
-    }
-
-    MC36XX_acc_t rawAccel = MC36XXreadRawAccel();
-    nrf_queue_push(&flash_accx_queue, &(rawAccel.XAxis));
-    nrf_queue_push(&flash_accy_queue, &(rawAccel.YAxis));
-    nrf_queue_push(&flash_accz_queue, &(rawAccel.ZAxis));
-    if (in_rt_mode && is_connected && sendfreq_division)
-    {
-        nrf_queue_push(&rt_accx_queue, &(rawAccel.XAxis));
-        nrf_queue_push(&rt_accy_queue, &(rawAccel.YAxis));
-        nrf_queue_push(&rt_accz_queue, &(rawAccel.ZAxis));
-    }
-
-    if (in_rt_mode && is_connected && sendfreq_division)
-    {
-        int16_t ppgr_val = AFE_Reg_Read_int16(LED1VAL);
-        int16_t ppgir_val = AFE_Reg_Read_int16(LED2VAL);
-
-        nrf_queue_push(&rt_ppgr_queue, &ppgr_val);
-        nrf_queue_push(&rt_ppgir_queue, &ppgir_val);
-    }
+	
+		int16_t val;
+	
+		switch(state_counter){
+			case 0:
+				val = MC36XXreadXAccel();
+				nrf_queue_push(&flash_accx_queue, &val);
+				break;
+			case 1:
+				val = MC36XXreadYAccel();
+				nrf_queue_push(&flash_accy_queue, &val);
+				break;
+			case 2:
+				val = MC36XXreadZAccel();
+				nrf_queue_push(&flash_accz_queue, &val);
+				break;
+			case 3:
+				val = AFE_Reg_Read_int16(LED1VAL);
+				nrf_queue_push(&rt_ppgr_queue, &val);
+				break;
+			case 4:
+				val = AFE_Reg_Read_int16(LED2VAL);
+				nrf_queue_push(&rt_ppgir_queue, &val);
+				break;
 		
-		sendfreq_division = !sendfreq_division;
-
-#ifdef DEBUG_MODE
-    float adcval;
-
-    adcval = AFEget_pd_current(LED1VAL);
-    nrf_queue_push(&debug_queue1, &adcval);
-
-    adcval = AFEget_pd_current(LED2VAL);
-    nrf_queue_push(&debug_queue2, &adcval);
-
-    float Mod_Acc = sqrt(pow(rawAccel.XAxis_g, 2) + pow(rawAccel.YAxis_g, 2) + pow(rawAccel.ZAxis_g, 2));
-    nrf_queue_push(&debug_queue3, &Mod_Acc);
-
-    adcval = (float)saadc_val * (3.6f / 4096.0f);
-    nrf_queue_push(&debug_queue4, &adcval);
-
-#endif
+		}
+		
+		state_counter++;
+		
 }
 
 static void m_slowACQ_timer_handler(void *p_context)
 {
 		
-    if (!in_rt_mode)
-    {
-				redBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED2_ALED2VAL);
-				irBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED1_ALED1VAL);
-				spo2_offset++;
-        if(spo2_offset == 25){ //got 1 second sample
-					spo2_offset = 0;
-					
-					bool validSPO2 = false;
-					bool validHeartRate = false;
-					
-					int16_t newspo2 = 0;
-					int16_t newheartrate = 0;
-					
-					maxim_heart_rate_and_oxygen_saturation(irBuffer, 100, redBuffer, &newspo2, &validSPO2, &newheartrate, &validHeartRate);
-					
-					NRF_LOG_INFO("SPo2: %d,%d HR:%d,%d",validSPO2,newspo2,validHeartRate,newheartrate);
-					
-					if(validSPO2) spo2 = newspo2;
-					if(validHeartRate) heartRate = newheartrate;
-					
-					for (uint8_t i = 25; i < 100; i++)
-					{
-							redBuffer[i - 25] = redBuffer[i];
-							irBuffer[i - 25] = irBuffer[i];
-					}
-					nrf_saadc_value_t saadc_val;
-					nrfx_saadc_sample_convert(3, &saadc_val);
-					bodytemp = saadc_val;
-				}
-    }
+//    if (!in_rt_mode)
+//    {
+//				redBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED2_ALED2VAL);
+//				irBuffer[spo2_offset + 75] = AFE_Reg_Read_int16(LED1_ALED1VAL);
+//				spo2_offset++;
+//        if(spo2_offset == 25){ //got 1 second sample
+//					spo2_offset = 0;
+//					
+//					//Update temperature every 1 second
+////					nrf_saadc_value_t saadc_val;
+////					nrfx_saadc_sample_convert(3, &saadc_val);
+////					bodytemp = saadc_val;
+////					
+////					int16_t mean = calculate_mean(&redBuffer);
+//					
+//					bool validSPO2 = false;
+//					bool validHeartRate = false;
+//					
+//					int16_t newspo2 = 0;
+//					int16_t newheartrate = 0;
+//					
+//					maxim_heart_rate_and_oxygen_saturation(irBuffer, 100, redBuffer, &newspo2, &validSPO2, &newheartrate, &validHeartRate);
+//					
+//					NRF_LOG_INFO("SPo2: %d,%d HR:%d,%d",validSPO2,newspo2,validHeartRate,newheartrate);
+//					
+//					if(validSPO2) spo2 = newspo2;
+//					if(validHeartRate) heartRate = newheartrate;
+//					
+//					for (uint8_t i = 25; i < 100; i++)
+//					{
+//							redBuffer[i - 25] = redBuffer[i];
+//							irBuffer[i - 25] = irBuffer[i];
+//					}
+//					
+//				}
+//    }
 }
 
 /**@brief Function for initializing the timer module.
@@ -415,14 +406,14 @@ static void timers_start(void)
     err_code = app_timer_start(millis_timer, APP_TIMER_TICKS(1), NULL);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC
+    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(20), NULL); 		//500Hz ECG, ACC
     APP_ERROR_CHECK(err_code);
 
     err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(40), NULL); 	//25Hz  SPo2
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
-    APP_ERROR_CHECK(err_code);
+//    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
+//    APP_ERROR_CHECK(err_code);
 }
 
 void saadc_callback(nrf_drv_saadc_evt_t const *p_event)

@@ -266,6 +266,10 @@ typedef struct
 		MC36XX_sniff_sr_t MC36XXGetSniffSampleRate(void);
 		bool MC36XXIsFIFOEmpty(void);
     MC36XX_acc_t MC36XXreadRawAccel(void);
+		
+		int16_t MC36XXreadXAccel(void);
+		int16_t MC36XXreadYAccel(void);
+		int16_t MC36XXreadZAccel(void);
 
 //  private:
     

@@ -238,15 +238,17 @@
 #include <stdint.h>
 
 void AFEinit(void);
-void DAC_settings(void);
+void DAC_settings(uint8_t led, int16_t nA);
 
 int32_t AFEget_led1_val(void);
 int32_t AFEget_led2_val(void);
 int32_t AFEget_led3_val(void);
 
+void set_tia_gain(uint8_t led, uint16_t gain_k);
+
 int32_t AFE_Reg_Read(uint8_t reg_address);
 int16_t AFE_Reg_Read_int16(uint8_t reg_address);
-float AFEget_pd_current(uint8_t reg);
+float AFEget_pd_current(uint8_t reg, int32_t val);
 
 void AFE_enable(void);
 void AFE_shutdown(void);

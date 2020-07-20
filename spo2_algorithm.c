@@ -77,6 +77,48 @@ const uint8_t uch_spo2_table[184] = {95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97,
                                      3, 2, 1};
 int16_t an_x[BUFFER_SIZE]; //ir
 int16_t an_y[BUFFER_SIZE]; //red
+																		 
+void calculate_mean(int16_t *buffer, int16_t length, int16_t* mean){
+	
+	int32_t sum = 0;
+	for(int16_t i=0;i<length;i++)
+		mean += buffer[i];
+	*mean = sum / length;
+	
+}
+
+void find_min(int16_t *buffer, int16_t length, int16_t* min_value, int16_t* loc){
+	
+	*min_value = 32767;
+	for(int16_t i=0;i<length;i++){
+		if(buffer[i] < *min_value){
+			*min_value = buffer[i];
+			*loc = i;
+		}
+	}
+	
+}
+
+void find_max(int16_t *buffer, int16_t length, int16_t* max_value, int16_t* loc){
+	
+	*max_value = -32768;
+	for(int16_t i=0;i<length;i++){
+		if(buffer[i] < *max_value){
+			*max_value = buffer[i];
+			*loc = i;
+		}
+	}
+	
+}
+
+void moving_average_4pt(int16_t *buffer, int16_t length){
+	
+	for (int16_t k = 0; k < length - 4; k++)
+  {
+    an_x[k] = (an_x[k] + an_x[k + 1] + an_x[k + 2] + an_x[k + 3]) / (int)4;
+  }
+
+}
 
 void maxim_heart_rate_and_oxygen_saturation(int16_t *pun_ir_buffer, int16_t n_ir_buffer_length, int16_t *pun_red_buffer, int16_t *pn_spo2, bool *pch_spo2_valid,
                                             int16_t *pn_heart_rate, bool *pch_hr_valid)
