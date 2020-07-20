@@ -121,7 +121,7 @@
 
 #define DEAD_BEEF 0xDEADBEEF /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
-#define QUEUE_SIZE 60
+#define QUEUE_SIZE 12
 
 BLE_NUS_DEF(m_nus, NRF_SDH_BLE_TOTAL_LINK_COUNT); /**< BLE NUS service instance. */
 NRF_BLE_GATT_DEF(m_gatt);                         /**< GATT module instance. */
@@ -148,7 +148,7 @@ NRF_QUEUE_DEF(float, debug_queue3, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int32_t, debug_queue4, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 #endif
 
-NRF_QUEUE_DEF(int16_t, flash_ecg_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
+NRF_QUEUE_DEF(int16_t, flash_ecg_queue, QUEUE_SIZE * 5, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accx_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accy_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
 NRF_QUEUE_DEF(int16_t, flash_accz_queue, QUEUE_SIZE, NRF_QUEUE_MODE_OVERFLOW);
@@ -170,7 +170,7 @@ int16_t flash_write_buffer[120];
 int16_t rt_send_buffer[122];
 int16_t nand_flash_bad_blocks[40];
 
-uint64_t millis = 0;
+int64_t millis = 0;
 int16_t spo2 = 0;
 int16_t heartRate = 0;
 int16_t bodytemp = 0;
@@ -472,6 +472,8 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
     {
         char sendbuf[100];
 				uint16_t llength;
+				nrf_saadc_value_t saadc_val;
+    
         switch (p_evt->params.rx_data.p_data[0])
         {
         case 'a':
@@ -503,29 +505,16 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 						flash_write_full = false;
 
             break;
+				case 'e':
+						nrfx_saadc_sample_convert(1, &saadc_val);
+						llength = sprintf(sendbuf,"Battery Voltages: %.2f",(float)saadc_val / 4096.0f * 3.6f);
+						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
+
+            break;
         default:
             break;
         }
 
-        //NRF_LOG_DEBUG("Received data from BLE NUS. Writing data on UART.");
-        //NRF_LOG_HEXDUMP_DEBUG(p_evt->params.rx_data.p_data, p_evt->params.rx_data.length);
-
-        //        for (uint32_t i = 0; i < p_evt->params.rx_data.length; i++)
-        //        {
-        //            do
-        //            {
-        //                //                err_code = app_uart_put(p_evt->params.rx_data.p_data[i]);
-        //                //                if ((err_code != NRF_SUCCESS) && (err_code != NRF_ERROR_BUSY))
-        //                //                {
-        //                //                    NRF_LOG_ERROR("Failed receiving NUS message. Error 0x%x. ", err_code);
-        //                //                    //APP_ERROR_CHECK(err_code);
-        //                //                }
-        //            } while (err_code == NRF_ERROR_BUSY);
-        //        }
-        //if (p_evt->params.rx_data.p_data[p_evt->params.rx_data.length - 1] == '\r')
-        //{
-        //    while (app_uart_put('\n') == NRF_ERROR_BUSY);
-        //}
     }
 }
 /**@snippet [Handling the data received over BLE] */
@@ -1329,7 +1318,7 @@ static void nand_flash_data_write(void)
 						flash_write_buffer[65] = millis;				//4210-4211
 					
             //*(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
-            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 144);
+            errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 132);
             //NRF_LOG_INFO("Writing block %d, page %d, column %d, size %d, %s", flash_offset.block, flash_offset.page, flash_offset.column, 144, nand_spi_flash_str_error(errid));
             flash_offset.column = 0;
             flash_write_data_offset = 0;
