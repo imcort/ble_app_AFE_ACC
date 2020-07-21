@@ -310,28 +310,41 @@ static void m_fastACQ_timer_handler(void *p_context)
 		//saadc_val = 32767.0 * sin(millis * 0.0126f);
     nrf_queue_push(&flash_ecg_queue, &saadc_val);
 	
+		if(in_rt_mode && (state_counter == 0))
+			nrf_queue_push(&rt_ecg_queue, &saadc_val);
+	
 		int16_t val;
 	
 		switch(state_counter){
 			case 0:
 				val = MC36XXreadXAccel();
 				nrf_queue_push(&flash_accx_queue, &val);
+				if(in_rt_mode)
+					nrf_queue_push(&rt_accx_queue, &val);
 				break;
 			case 1:
 				val = MC36XXreadYAccel();
 				nrf_queue_push(&flash_accy_queue, &val);
+				if(in_rt_mode)
+					nrf_queue_push(&rt_accy_queue, &val);
 				break;
 			case 2:
 				val = MC36XXreadZAccel();
 				nrf_queue_push(&flash_accz_queue, &val);
+				if(in_rt_mode)
+					nrf_queue_push(&rt_accz_queue, &val);
 				break;
 			case 3:
 				val = AFE_Reg_Read_int16(LED1VAL);
 				nrf_queue_push(&flash_ppgr_queue, &val);
+				if(in_rt_mode)
+					nrf_queue_push(&rt_ppgr_queue, &val);
 				break;
 			case 4:
 				val = AFE_Reg_Read_int16(LED2VAL);
 				nrf_queue_push(&flash_ppgir_queue, &val);
+				if(in_rt_mode)
+					nrf_queue_push(&rt_ppgir_queue, &val);
 				break;
 		
 		}
