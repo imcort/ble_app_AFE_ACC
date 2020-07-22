@@ -393,8 +393,8 @@ static void timers_start(void)
     err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(1000), NULL); 	//1Hz Bodytemp, Battery
     APP_ERROR_CHECK(err_code);
 
-//    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
-//    APP_ERROR_CHECK(err_code);
+    err_code = app_timer_start(log_timer, APP_TIMER_TICKS(1000), NULL);
+    APP_ERROR_CHECK(err_code);
 }
 
 void saadc_callback(nrf_drv_saadc_evt_t const *p_event)
@@ -406,6 +406,8 @@ static void saadc_init(void)
     ret_code_t err_code;
 
     nrf_saadc_channel_config_t channel_temperature = NRF_DRV_SAADC_DEFAULT_CHANNEL_CONFIG_SE(NRF_SAADC_INPUT_AIN1);
+	
+		channel_temperature.gain = NRF_SAADC_GAIN1_3;  //1.8V
 
     nrf_saadc_channel_config_t channel_battery = NRF_DRV_SAADC_DEFAULT_CHANNEL_CONFIG_SE(NRF_SAADC_INPUT_AIN2);
 
@@ -486,6 +488,7 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
         char sendbuf[100];
 				uint16_t llength;
 				nrf_saadc_value_t saadc_val;
+				float val, val2;
     
         switch (p_evt->params.rx_data.p_data[0])
         {
@@ -520,7 +523,16 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
             break;
 				case 'e':
 						nrfx_saadc_sample_convert(1, &saadc_val);
-						llength = sprintf(sendbuf,"Battery Voltages: %.2f",(float)saadc_val / 4096.0f * 3.6f);
+						val = (float)saadc_val / 4096.0f * 7.2f;
+						llength = sprintf(sendbuf,"Battery Voltages: %.2f", val);
+						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
+
+            break;
+				case 'f':
+						nrfx_saadc_sample_convert(0, &saadc_val);
+						val = (float)saadc_val / 4096.0f * 1.8f;
+				    val2 = 8.784e4f * pow(val, -0.3548f) - 4.583e4f;
+						llength = sprintf(sendbuf,"Temp voltages: %.2f, Res: %.2f", val, val2);
 						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
 
             break;
@@ -1322,13 +1334,12 @@ static void nand_flash_data_write(void)
         if ((flash_offset.column == 4080) && (flash_write_data_offset == 6)) //this indicates the true column number is 4080, the rest data need to be stored
         {
 
-            flash_write_buffer[60] = spo2;    			//4200-4201
-            flash_write_buffer[61] = bodytemp;			//4202-4203
+            flash_write_buffer[60] = bodytemp;			//4202-4203
 					
-						flash_write_buffer[62] = millis >> 48;	//4204-4205
-						flash_write_buffer[63] = millis >> 32;	//4206-4207
-						flash_write_buffer[64] = millis >> 16;	//4208-4209
-						flash_write_buffer[65] = millis;				//4210-4211
+						flash_write_buffer[61] = millis >> 48;	//4204-4205
+						flash_write_buffer[62] = millis >> 32;	//4206-4207
+						flash_write_buffer[63] = millis >> 16;	//4208-4209
+						flash_write_buffer[64] = millis;				//4210-4211
 					
             //*(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
             errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 132);
