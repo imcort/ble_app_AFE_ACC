@@ -171,9 +171,9 @@ int16_t rt_send_buffer[122];
 int16_t nand_flash_bad_blocks[40];
 
 int64_t millis = 0;
-int16_t spo2 = 0;
+int16_t spo2 = 2048;
 int16_t heartRate = 0;
-int16_t bodytemp = 0;
+int16_t bodytemp = 1024;
 uint8_t nand_flash_bad_block_num = 0;
 
 bool in_rt_mode = false;
@@ -232,6 +232,16 @@ static nand_flash_addr_t flash_read = {
 
 bool flash_write_full = false;
 uint16_t flash_write_data_offset = 0;
+
+static void fds_gc_process(){
+	
+	//gc every pages full
+	m_fds_gc = false;
+	ret_code_t ret = fds_gc();
+	APP_ERROR_CHECK(ret);
+	while(!m_fds_gc) __WFE();
+
+}
 
 /**@brief Function for assert macro callback.
  *
@@ -489,7 +499,8 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 				uint16_t llength;
 				nrf_saadc_value_t saadc_val;
 				float val, val2;
-    
+				fds_stat_t stat;
+			
         switch (p_evt->params.rx_data.p_data[0])
         {
         case 'a':
@@ -502,7 +513,8 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
             break;
         case 'c':
 						
-						llength = sprintf(sendbuf,"nand block: %d, page: %d\nread block:%d, page: %d",flash_offset.block,flash_offset.page,flash_read.block,flash_read.page);
+						fds_stat(&stat);
+						llength = sprintf(sendbuf,"nand block: %d, page: %d\nread block:%d, page: %d\n fds used: %d", flash_offset.block, flash_offset.page, flash_read.block, flash_read.page, stat.freeable_words);
 						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
 
             break;
@@ -519,6 +531,9 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 						memset(nand_flash_bad_blocks,0,sizeof(nand_flash_bad_blocks));
 				
 						flash_write_full = false;
+				
+						//gc
+						fds_gc_process();
 
             break;
 				case 'e':
@@ -1127,20 +1142,18 @@ static fds_record_t const m_flash_bad_block_record =
 	.data.length_words = 20
 };
 
-static void fds_gc_process(){
-	
-	static fds_stat_t stat = {0};
-	
-	ret_code_t ret = fds_stat(&stat);
-	APP_ERROR_CHECK(ret);
-	
-	NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
-
-}
-
 static void m_log_timer_handler(void *p_context)
 {
+
+		static fds_stat_t stat = {0};
+		
+		ret_code_t ret = fds_stat(&stat);
+		APP_ERROR_CHECK(ret);
+		
 		fds_gc_process();
+		
+		NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
+	
     NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
     NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
 	
@@ -1361,10 +1374,7 @@ static void nand_flash_data_write(void)
             if (flash_offset.page == 64)
             {
 							  //gc every pages full
-								m_fds_gc = false;
-								ret = fds_gc();
-								APP_ERROR_CHECK(ret);
-								while(!m_fds_gc) __WFE();
+								fds_gc_process();
 
                 flash_offset.page = 0;
                 flash_offset.block++;
@@ -1424,7 +1434,9 @@ static void nand_flash_data_read()
 							
                 if (flash_read.page == 64)
                 {
-
+										//gc every pages full
+										fds_gc_process();
+									
                     flash_read.page = 0;
                     flash_read.block++;
 
