@@ -497,6 +497,9 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
     {
         char sendbuf[100];
 				uint16_t llength;
+			
+				uint32_t time_set;
+			
 				nrf_saadc_value_t saadc_val;
 				float val, val2;
 				fds_stat_t stat;
@@ -514,7 +517,15 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
         case 'c':
 						
 						fds_stat(&stat);
-						llength = sprintf(sendbuf,"nand block: %d, page: %d\nread block:%d, page: %d\n fds used: %d", flash_offset.block, flash_offset.page, flash_read.block, flash_read.page, stat.freeable_words);
+						llength = sprintf(sendbuf,
+																			"nand block: %d, page: %d\nread block:%d, page: %d\n fds used: %d\n time:%u",
+																			flash_offset.block, 
+																			flash_offset.page, 
+																			flash_read.block, 
+																			flash_read.page, 
+																			stat.freeable_words,
+																			(uint32_t)(millis / 1000));
+				
 						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
 
             break;
@@ -531,9 +542,6 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 						memset(nand_flash_bad_blocks,0,sizeof(nand_flash_bad_blocks));
 				
 						flash_write_full = false;
-				
-						//gc
-						fds_gc_process();
 
             break;
 				case 'e':
@@ -551,6 +559,15 @@ static void nus_data_handler(ble_nus_evt_t *p_evt)
 						ble_nus_data_send(&m_nus, (uint8_t *)sendbuf, &llength, m_conn_handle);
 
             break;
+				
+				case 'g':
+						
+						sscanf((const char *)(p_evt->params.rx_data.p_data) + 1, "%u", &time_set);
+				
+						millis = (int64_t)time_set * 1000;
+				
+						break;
+				
         default:
             break;
         }
@@ -1146,13 +1163,14 @@ static void m_log_timer_handler(void *p_context)
 {
 
 		static fds_stat_t stat = {0};
-		
+		 
 		ret_code_t ret = fds_stat(&stat);
 		APP_ERROR_CHECK(ret);
 		
-		fds_gc_process();
-		
 		NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
+		
+		if(stat.freeable_words > 500)
+			fds_gc_process();
 	
     NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
     NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
@@ -1561,13 +1579,22 @@ int main(void)
     advertising_start();
 		
 		twi_init();
+		NRF_LOG_INFO("TWI_OK");
 		
     AFEinit();
+		NRF_LOG_INFO("AFE_OK");
 		
     MC36XXstart();
+		NRF_LOG_INFO("ACC_OK");
+		
     saadc_init();
+		NRF_LOG_INFO("SAADC_OK");
+		
 		fds_prepare();
+		NRF_LOG_INFO("FDS_OK");
+		
     nand_flash_prepare();
+		NRF_LOG_INFO("NAND_OK");
 
     timers_start();
     
