@@ -1367,11 +1367,12 @@ static void nand_flash_data_write(void)
         {
 
             flash_write_buffer[60] = bodytemp;			//4202-4203
-					
-						flash_write_buffer[61] = millis >> 48;	//4204-4205
-						flash_write_buffer[62] = millis >> 32;	//4206-4207
-						flash_write_buffer[63] = millis >> 16;	//4208-4209
-						flash_write_buffer[64] = millis;				//4210-4211
+						
+						*(int64_t*)(&flash_write_buffer[61]) = millis;
+//						flash_write_buffer[61] = millis >> 48;	//4204-4205
+//						flash_write_buffer[62] = millis >> 32;	//4206-4207
+//						flash_write_buffer[63] = millis >> 16;	//4208-4209
+//						flash_write_buffer[64] = millis;				//4210-4211
 					
             //*(uint32_t *)&flash_write_buffer[70] = millis;  //4221-4224
             errid = nand_spi_flash_page_write((flash_offset.block << 6) | flash_offset.page, flash_offset.column, (uint8_t *)flash_write_buffer, 132);
