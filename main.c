@@ -368,6 +368,7 @@ static void m_fastACQ_timer_handler(void *p_context)
 static void m_slowACQ_timer_handler(void *p_context)
 {
 		//Handling bodytemp, battery voltage
+		nrfx_saadc_sample_convert(0, &bodytemp);
 }
 
 /**@brief Function for initializing the timer module.
