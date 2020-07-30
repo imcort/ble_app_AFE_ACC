@@ -170,6 +170,9 @@ int16_t flash_write_buffer[120];
 int16_t rt_send_buffer[122];
 int16_t nand_flash_bad_blocks[40];
 
+int16_t leads_off_volt = 0;
+bool acq_is_working = false;
+
 int64_t millis = 0;
 int16_t spo2 = 2048;
 int16_t heartRate = 0;
@@ -368,7 +371,23 @@ static void m_fastACQ_timer_handler(void *p_context)
 static void m_slowACQ_timer_handler(void *p_context)
 {
 		//Handling bodytemp, battery voltage
+		uint32_t err_code;
+	
 		nrfx_saadc_sample_convert(0, &bodytemp);
+		
+		nrfx_saadc_sample_convert(2, &leads_off_volt);
+	
+		if((leads_off_volt < 3000) && (!acq_is_working)) {
+				
+				MC36XXSetMode(MC36XX_MODE_CWAKE);
+				AFE_enable();
+				err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC, SpO2
+				APP_ERROR_CHECK(err_code);
+				acq_is_working = true;
+			
+		}
+		
+	
 }
 
 /**@brief Function for initializing the timer module.
@@ -398,8 +417,8 @@ static void timers_start(void)
     err_code = app_timer_start(millis_timer, APP_TIMER_TICKS(1), NULL);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC, SpO2
-    APP_ERROR_CHECK(err_code);
+//    err_code = app_timer_start(fastACQ_timer, APP_TIMER_TICKS(2), NULL); 		//500Hz ECG, ACC, SpO2
+//    APP_ERROR_CHECK(err_code);
 
     err_code = app_timer_start(slowACQ_timer, APP_TIMER_TICKS(1000), NULL); 	//1Hz Bodytemp, Battery
     APP_ERROR_CHECK(err_code);
@@ -1380,6 +1399,17 @@ static void nand_flash_data_write(void)
             flash_offset.column = 0;
             flash_write_data_offset = 0;
             flash_offset.page++;
+					
+						if((leads_off_volt >= 3000) && (acq_is_working)) {
+				
+								
+								errid = app_timer_stop(fastACQ_timer); 		//500Hz ECG, ACC, SpO2
+								APP_ERROR_CHECK(errid);
+								MC36XXSetMode(MC36XX_MODE_SLEEP);
+								AFE_shutdown();
+								acq_is_working = false;
+							
+						}
 						
 						//Writing to FDS
 						//NRF_LOG_INFO("FDS updating flash offset");

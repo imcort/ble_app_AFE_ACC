@@ -85,7 +85,7 @@ bool MC36XXstart(void)
     //Resolution: 14bit
     MC36XXSetResolutionCtrl(MC36XX_RESOLUTION_14BIT);
     //Sampling Rate: 50Hz by default
-    MC36XXSetCWakeSampleRate(MC36XX_CWAKE_SR_400Hz);
+    MC36XXSetCWakeSampleRate(MC36XX_CWAKE_SR_105Hz);
 		//Sampling Rate: 7Hz by default
     MC36XXSetSniffSampleRate(MC36XX_SNIFF_SR_105Hz);
     //Mode: Active

@@ -97,7 +97,7 @@ void AFEinit(void)
 
 	nrf_gpio_cfg_output(AFE_CS_PIN);
 	
-	AFE_enable();
+	//AFE_enable();
 	
 }
 
