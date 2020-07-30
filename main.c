@@ -239,7 +239,7 @@ static void fds_gc_process(){
 	m_fds_gc = false;
 	ret_code_t ret = fds_gc();
 	APP_ERROR_CHECK(ret);
-	while(!m_fds_gc) __WFE();
+	while(!m_fds_gc) nrf_pwr_mgmt_run();
 
 }
 
@@ -291,7 +291,7 @@ int nand_spi_transfer(uint8_t *buffer, uint16_t tx_len, uint16_t rx_len)
     APP_ERROR_CHECK(nrf_drv_spi_transfer(&spi, buffer, tx_len, buffer, tx_len + rx_len));
 
     while (!spi_xfer_done)
-        __WFE();
+        nrf_pwr_mgmt_run();
 
     return NSF_ERR_OK;
 }
@@ -1217,7 +1217,7 @@ static void nand_flash_prepare(void)
 			NRF_LOG_INFO("FDS flash error:%d", ret);
 			//FDS_ERR_INVALID_ARG
 			APP_ERROR_CHECK(ret);
-			while(!m_fds_writed) __WFE();
+			while(!m_fds_writed) nrf_pwr_mgmt_run();
 			NRF_LOG_INFO("FDS flash offset writed.");
 		
 		}
@@ -1245,7 +1245,7 @@ static void nand_flash_prepare(void)
 			NRF_LOG_INFO("FDS flash error:%d", ret);
 			//FDS_ERR_INVALID_ARG
 			APP_ERROR_CHECK(ret);
-			while(!m_fds_writed) __WFE();
+			while(!m_fds_writed) nrf_pwr_mgmt_run();
 			NRF_LOG_INFO("FDS flash read writed.");
 		
 		}
@@ -1273,7 +1273,7 @@ static void nand_flash_prepare(void)
 			NRF_LOG_INFO("FDS flash error:%d", ret);
 			//FDS_ERR_INVALID_ARG
 			APP_ERROR_CHECK(ret);
-			while(!m_fds_writed) __WFE();
+			while(!m_fds_writed) nrf_pwr_mgmt_run();
 			NRF_LOG_INFO("FDS flash badblock writed.");
 		
 		}
@@ -1344,7 +1344,7 @@ static void nand_flash_data_write(void)
 												//NRF_LOG_INFO("FDS flash error:%d", ret);
 												//FDS_ERR_INVALID_ARG
 												APP_ERROR_CHECK(ret);
-												while(!m_fds_updated) __WFE();
+												while(!m_fds_updated) nrf_pwr_mgmt_run();
 												//NRF_LOG_INFO("FDS updated");
 
                         flash_offset.block++;
@@ -1388,7 +1388,7 @@ static void nand_flash_data_write(void)
 						//NRF_LOG_INFO("FDS flash error:%d", ret);
 						//FDS_ERR_INVALID_ARG
 						APP_ERROR_CHECK(ret);
-						while(!m_fds_updated) __WFE();
+						while(!m_fds_updated) nrf_pwr_mgmt_run();
 						//NRF_LOG_INFO("FDS updated");
 						
             if (flash_offset.page == 64)
@@ -1448,7 +1448,7 @@ static void nand_flash_data_read()
 								//NRF_LOG_INFO("FDS flash error:%d", ret);
 								//FDS_ERR_INVALID_ARG
 								APP_ERROR_CHECK(ret);
-								while(!m_fds_updated) __WFE();
+								while(!m_fds_updated) nrf_pwr_mgmt_run();
 								//NRF_LOG_INFO("FDS updated");
 							
 							

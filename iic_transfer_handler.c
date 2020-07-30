@@ -1,5 +1,5 @@
 #include "iic_transfer_handler.h"
-
+#include "nrf_pwr_mgmt.h"
 
 /* TWI instance ID. */
 #define TWI_INSTANCE_ID 0
@@ -55,12 +55,12 @@ void twi_readRegisters(uint8_t addr, uint8_t reg, uint8_t *buffer, uint8_t len){
 	m_xfer_done = false;
 	err_code = nrf_drv_twi_tx(&m_twi, addr, iic_sendbuf, 1, true);
 	APP_ERROR_CHECK(err_code);
-	while (m_xfer_done == false) __WFE();
+	while (m_xfer_done == false) nrf_pwr_mgmt_run();
 	
 	m_xfer_done = false;
 	err_code = nrf_drv_twi_rx(&m_twi, addr, iic_recvbuf, len);
 	APP_ERROR_CHECK(err_code);
-	while (m_xfer_done == false) __WFE();
+	while (m_xfer_done == false) nrf_pwr_mgmt_run();
 	
 	memcpy(buffer, iic_recvbuf, len);
 
@@ -76,7 +76,7 @@ void twi_writeRegisters(uint8_t addr, uint8_t reg, uint8_t *buffer, uint8_t len)
 	m_xfer_done = false;
 	err_code = nrf_drv_twi_tx(&m_twi, addr, iic_sendbuf, len + 1, false);
 	APP_ERROR_CHECK(err_code);
-	while (m_xfer_done == false) __WFE();
+	while (m_xfer_done == false) nrf_pwr_mgmt_run();
 
 }
 
