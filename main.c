@@ -372,8 +372,9 @@ static void m_slowACQ_timer_handler(void *p_context)
 {
 		//Handling bodytemp, battery voltage
 		uint32_t err_code;
-	
-		nrfx_saadc_sample_convert(0, &bodytemp);
+		
+		if(acq_is_working)
+			nrfx_saadc_sample_convert(0, &bodytemp);
 		
 		nrfx_saadc_sample_convert(2, &leads_off_volt);
 	
@@ -1189,8 +1190,8 @@ static void m_log_timer_handler(void *p_context)
 		
 		NRF_LOG_INFO("FDS words available:%d", stat.freeable_words);
 		
-		if(stat.freeable_words > 500)
-			fds_gc_process();
+//		if(stat.freeable_words > 500)
+//			fds_gc_process();
 	
     NRF_LOG_INFO("Writing block %d, page %d, column %d", flash_offset.block, flash_offset.page, flash_offset.column);
     NRF_LOG_INFO("send success block %d, page %d, column %d", flash_read.block, flash_read.page, flash_read.column);
